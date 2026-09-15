@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Faculdade RENOVA</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Faculdade RENOVA">
+      <span class="brand-mark">R</span>
+      <span><strong>Faculdade RENOVA</strong><small>Ecossistema RENOVA Global</small></span>
+    </a>
+    <div class="student"><span class="status-dot"></span><span><small>Perfil conectado</small><strong>Aluno piloto</strong></span></div>
+  </header>
+  <main id="inicio" class="layout">
+    <aside class="sidebar">
+      <p class="eyebrow">Curso atual</p><h1>Programação do básico ao Hard</h1>
+      <div class="progress-label"><span>Progresso do nível</span><strong id="progressText">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div>
+      <nav class="phases" aria-label="Fases do curso">
+        <button class="phase active" data-phase="1"><span>1</span><div><strong>O que é programação?</strong><small>Disponível agora</small></div></button>
+        <button class="phase locked" data-phase="2" disabled><span>2</span><div><strong>Variáveis e valores</strong><small>Conclua a fase 1</small></div></button>
+        <button class="phase locked" data-phase="3" disabled><span>3</span><div><strong>Operadores</strong><small>Bloqueada</small></div></button>
+      </nav>
+      <div class="level-card"><span>Nível atual</span><strong>1 — Iniciante</strong><small>O nível é conquistado, nunca comprado.</small></div>
+    </aside>
+    <section class="classroom">
+      <div class="hero">
+        <div><p class="eyebrow">Nível 1 · Fase 1</p><h2>O que é programação?</h2><p>Aprenda o conceito, execute seu primeiro algoritmo e prove que compreendeu para liberar a próxima fase.</p></div>
+        <div class="score"><span>Critério</span><strong>100%</strong><small>dos requisitos essenciais</small></div>
+      </div>
+      <article class="lesson card">
+        <div class="card-title"><span class="icon">01</span><div><p class="eyebrow">Aprender</p><h3>Entrada, processamento e saída</h3></div></div>
+        <p>Programar é organizar instruções para que um computador resolva um problema. Um programa recebe dados, processa esses dados e apresenta um resultado.</p>
+        <div class="concepts"><div><span>Entrada</span><strong>Preço e quantidade</strong></div><div><span>Processamento</span><strong>Preço × quantidade</strong></div><div><span>Saída</span><strong>Valor total</strong></div></div>
+      </article>
+      <article class="lab card">
+        <div class="card-title"><span class="icon code">&lt;/&gt;</span><div><p class="eyebrow">Praticar</p><h3>Laboratório de código</h3></div></div>
+        <p>Complete o código para calcular o valor de 8 serviços a R$ 53,99 cada.</p>
+        <label for="codeEditor">Seu código JavaScript</label>
+        <textarea id="codeEditor" spellcheck="false">const valorPorServico = 53.99;
+const quantidade = 8;
+const total = valorPorServico ___ quantidade;
+
+console.log(total);</textarea>
+        <div class="lab-actions"><button id="runButton" class="primary">Executar e avaliar</button><button id="hintButton" class="secondary">Receber uma dica</button></div>
+        <div id="feedback" class="feedback neutral" aria-live="polite"><strong>Pronto para testar.</strong><span>Substitua os três traços pelo operador correto.</span></div>
+      </article>
+      <article class="requirements card">
+        <div class="card-title"><span class="icon">✓</span><div><p class="eyebrow">Comprovar domínio</p><h3>Requisitos da fase</h3></div></div>
+        <ul><li id="reqSyntax"><span></span>Código executa sem erro</li><li id="reqOperator"><span></span>Operador de multiplicação utilizado corretamente</li><li id="reqResult"><span></span>Resultado exato: R$ 431,92</li><li id="reqHidden"><span></span>Teste oculto com outros valores</li></ul>
+        <button id="nextButton" class="next" disabled>Próxima fase bloqueada 🔒</button>
+      </article>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
