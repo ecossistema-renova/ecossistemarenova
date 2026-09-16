@@ -22,7 +22,42 @@ function reset(){
 function mark(name){ requirements[name].classList.add('done'); }
 
 function evaluate(){
-  reset();
+  
+const checkpointQuestions=[...document.querySelectorAll('.question')];
+const checkpointStatus=document.querySelector('#checkpointStatus');
+const masteredConcepts=new Set();
+
+runButton.disabled=true;
+runButton.textContent='Conclua a explicação para praticar';
+
+checkpointQuestions.forEach(question=>{
+  question.querySelectorAll('button').forEach(option=>{
+    option.addEventListener('click',()=>{
+      const feedbackNode=question.querySelector('.question-feedback');
+      question.querySelectorAll('button').forEach(button=>button.classList.remove('incorrect'));
+      if(option.dataset.correct==='true'){
+        question.querySelectorAll('button').forEach(button=>button.classList.remove('correct'));
+        option.classList.add('correct');
+        masteredConcepts.add(question.dataset.question);
+        feedbackNode.className='question-feedback ok';
+        feedbackNode.textContent='Correto! Você compreendeu este conceito.';
+      }else{
+        option.classList.add('incorrect');
+        feedbackNode.className='question-feedback try';
+        feedbackNode.textContent='Ainda não. Volte à explicação acima e tente novamente.';
+      }
+      checkpointStatus.textContent=masteredConcepts.size+' de 3 conceitos confirmados';
+      if(masteredConcepts.size===checkpointQuestions.length){
+        checkpointStatus.classList.add('complete');
+        checkpointStatus.textContent='Teoria compreendida! Laboratório liberado ✓';
+        runButton.disabled=false;
+        runButton.textContent='Executar e avaliar';
+        editor.focus();
+      }
+    });
+  });
+});
+\nreset();
   const source=editor.value;
   const usesMultiplication=/valorPorServico\s*\*\s*quantidade/.test(source);
   if(usesMultiplication) mark('operator');
