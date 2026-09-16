@@ -57,7 +57,8 @@ checkpointQuestions.forEach(question=>{
     });
   });
 });
-\nreset();
+
+reset();
   const source=editor.value;
   const usesMultiplication=/valorPorServico\s*\*\s*quantidade/.test(source);
   if(usesMultiplication) mark('operator');
