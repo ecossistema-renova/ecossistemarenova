@@ -62,13 +62,18 @@ async function startBuy(itemId){
 
 async function load(){
  statusEl.textContent='Carregando vitrine…';
- const {data,error}=await sb.from('oyag_public_marketplace').select('*');
- if(error){
-  console.error('OYAG_MARKETPLACE',error);
+ const r=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/oyag_public_marketplace_list',{
+  method:'POST',
+  headers:{apikey:cfg.supabasePublishableKey,'content-type':'application/json'},
+  body:'{}'
+ });
+ const data=await r.json().catch(()=>null);
+ if(!r.ok||!Array.isArray(data)){
+  console.error('OYAG_MARKETPLACE',data);
   statusEl.textContent='Não foi possível carregar a vitrine agora. Tente novamente.';
   return;
  }
- items=data||[];
+ items=data;
  catEl.innerHTML='<option value="">Todas as categorias</option>';
  [...new Set(items.map(x=>x.category).filter(Boolean))].sort().forEach(c=>catEl.insertAdjacentHTML('beforeend','<option>'+esc(c)+'</option>'));
  render();
