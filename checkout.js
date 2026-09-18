@@ -234,9 +234,17 @@ async function tryAsaasCheckout(){
     location.assign(data.checkout_url);
     return true;
   }
-  if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active'].includes(data?.error)){
+  if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active','asaas_checkout_not_ready','asaas_parent_account_missing'].includes(data?.error)){
     paymentMessage.className='payment-message error';
-    paymentMessage.textContent='O pagamento pelo Asaas ainda está sendo ativado. Nenhuma cobrança será enviada ao Mercado Pago.';
+    paymentMessage.textContent='O checkout Asaas ainda não está liberado para esta conta. Nenhuma cobrança será enviada ao Mercado Pago.';
+    if(paymentSelector) paymentSelector.style.display='none';
+    const mpContainer=document.querySelector('#paymentBrick_container');
+    if(mpContainer) mpContainer.innerHTML='';
+    return true;
+  }
+  if(data?.error==='asaas_marketplace_not_ready'){
+    paymentMessage.className='payment-message error';
+    paymentMessage.textContent='Este carrinho possui mais de uma empresa. O checkout comum está disponível, mas o split multiempresa ainda aguarda liberação da conta-pai empresarial.';
     if(paymentSelector) paymentSelector.style.display='none';
     const mpContainer=document.querySelector('#paymentBrick_container');
     if(mpContainer) mpContainer.innerHTML='';
