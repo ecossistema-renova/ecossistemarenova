@@ -5,16 +5,17 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="index,follow">
   <title>OYAG Ecosystem</title>
-  <meta http-equiv="refresh" content="0;url=./desktop/">
 </head>
 <body style="margin:0;background:#061b2b">
 <script>
 (function(){
-  var suffix=(location.search||'')+(location.hash||'');
-  location.replace('./desktop/'+suffix);
+  var ua=navigator.userAgent||'';
+  var isMobile=/Android|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile/i.test(ua);
+  var target=isMobile?'./mobile/':'./desktop/';
+  location.replace(target+(location.search||'')+(location.hash||''));
 })();
 </script>
 <noscript><a href="./desktop/" style="color:white">Acessar OYAG Ecosystem</a></noscript>
