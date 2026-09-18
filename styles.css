@@ -24,3 +24,6 @@
  html{scroll-behavior:auto}
  *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* Homologação OYAG: identificação visual explícita */
+.homolog-badge{position:fixed;right:14px;bottom:14px;z-index:999999;padding:9px 12px;border-radius:10px;background:#fff;color:#061b2b;border:2px solid #f4c960;font-size:.72rem;font-weight:900;letter-spacing:.05em;box-shadow:0 8px 30px #0003}
