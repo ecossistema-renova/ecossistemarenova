@@ -137,7 +137,23 @@ function notice(){return '<div class="panel"><h2>Ambiente protegido</h2><p>Ambie
  '<div class="dashboard-columns"><div class="panel"><div class="panel-heading"><div><p class="eyebrow">ATIVIDADE CENTRAL</p><h2>Pontos recentes</h2></div></div>'+(als.length?als.map(x=>'<div class="activity-row"><b>'+esc(x.reason||'Alerta operacional')+'</b><span>'+esc(x.severity||'atenção')+'</span></div>').join(''):statePanel('Nenhuma atenção crítica agora','Os alertas operacionais aparecerão aqui quando houver necessidade de acompanhamento.'))+'</div>'+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">OPERAÇÃO</p><h2>Atenção agora</h2></div></div><div class="operation-stack"><div class="operation-row"><span>Tarefas abertas</span><strong>'+open.length+'</strong></div><div class="operation-row"><span>Tarefas atrasadas</span><strong>'+overdue.length+'</strong></div><div class="operation-row"><span>Tarefas bloqueadas</span><strong>'+blocked.length+'</strong></div><div class="operation-row"><span>Alertas abertos</span><strong>'+als.length+'</strong></div></div></div></div>'+notice()
 }
-async function show(v){C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';const names={overview:'Visão geral',companies:'Empresas',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};title.textContent=names[v];if(v==='project'){await showProject();return}if(v==='performance'){await showPerformance();return}if(v==='overview'){await overview();return}const map={companies:'organizations',units:'oyag_owner_unit_overview',network:'oyag_affiliate_memberships',finance:'oyag_ledger_account_balances',alerts:'oyag_operational_alerts',admin:'platform_roles'};const {data,error}=await sb.from(map[v]).select('*').limit(50);if(error){C.innerHTML=statePanel('Não foi possível carregar esta área','Tente novamente. Se o problema continuar, procure o suporte.');return}C.innerHTML=renderDomain(v,data||[])}async function showProject(){
+async function show(v){
+ C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';
+ const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};
+ title.textContent=names[v]||'OYAG Ecosystem';
+ if(v==='catalog'){await showCatalog();return}
+ if(v==='project'){await showProject();return}
+ if(v==='performance'){await showPerformance();return}
+ if(v==='finance'){await showFinance();return}
+ if(v==='admin'){await showAdmin();return}
+ if(v==='overview'){await overview();return}
+ const map={companies:'organizations',units:'oyag_owner_unit_overview',network:'oyag_affiliate_memberships',alerts:'oyag_operational_alerts'};
+ const table=map[v];
+ if(!table){C.innerHTML=statePanel('Área disponível','Os dados desta área estão sendo preparados.');return}
+ const {data,error}=await sb.from(table).select('*').limit(50);
+ if(error){C.innerHTML=statePanel('Não foi possível carregar esta área','Tente novamente. Se o problema continuar, procure o suporte.');return}
+ C.innerHTML=renderDomain(v,data||[]);
+}async function showProject(){
  const [{data:tasks,error},{data:phases}]=await Promise.all([sb.from('oyag_project_tasks').select('id,title,description,status,priority,sector,phase_id,blocked_reason,completed_at,position,due_date').order('position'),sb.from('oyag_project_phases').select('id,name,position').order('position')]);
  if(error){C.innerHTML=statePanel('Não foi possível carregar o Projeto OYAG','Tente novamente.');return}
  const statuses=[['backlog','Backlog'],['todo','A Fazer'],['in_progress','Em andamento'],['blocked','Bloqueado'],['review','Revisão'],['done','Concluído']],total=tasks.length,done=tasks.filter(t=>t.status==='done').length,pct=total?Math.round(done*100/total):0;
