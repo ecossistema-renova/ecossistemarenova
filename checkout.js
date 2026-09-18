@@ -212,7 +212,7 @@ async function mountPaymentBrick(method){
  }
 }
 
-async function tryAsaasCheckout(method){
+async function tryAsaasCheckout(method,paymentWindow=null){
   const identification=getBuyerIdentification(true);
   if(!identification)return false;
   const attemptId=crypto.randomUUID();
@@ -231,18 +231,29 @@ async function tryAsaasCheckout(method){
     if(paymentProviderLabel)paymentProviderLabel.textContent='Asaas';
     paymentMessage.className='payment-message ok';
     paymentMessage.textContent='Abrindo o checkout seguro Asaas…';
-    location.assign(data.checkout_url);
+    const url=String(data.checkout_url);
+    if(paymentWindow && !paymentWindow.closed){
+      try{ paymentWindow.opener=null; }catch{}
+      paymentWindow.location.replace(url);
+    }else if(window.self===window.top){
+      location.assign(url);
+    }else{
+      paymentActionEl.innerHTML='<a class="button primary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir pagamento seguro no Asaas</a>';
+      paymentMessage.textContent='O checkout do Asaas não pode ser exibido dentro do iframe. Abra o pagamento seguro em uma nova aba.';
+    }
     return true;
   }
   if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active','asaas_checkout_not_ready','asaas_parent_account_missing'].includes(data?.error)){
+    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
     paymentMessage.className='payment-message error';
-    paymentMessage.textContent='O checkout Asaas ainda não está liberado para esta conta. Nenhuma cobrança será enviada ao Mercado Pago.';
+    paymentMessage.textContent='O checkout Asaas ainda não está liberado para esta conta.';
     if(paymentSelector) paymentSelector.style.display='none';
     const mpContainer=document.querySelector('#paymentBrick_container');
     if(mpContainer) mpContainer.innerHTML='';
     return true;
   }
   if(data?.error==='asaas_marketplace_not_ready'){
+    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
     paymentMessage.className='payment-message error';
     paymentMessage.textContent='Este carrinho possui mais de uma empresa. O checkout comum está disponível, mas o split multiempresa ainda aguarda liberação da conta-pai empresarial.';
     if(paymentSelector) paymentSelector.style.display='none';
@@ -251,14 +262,16 @@ async function tryAsaasCheckout(method){
     return true;
   }
   if(data?.error==='asaas_card_minimum_amount'){
+    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
     paymentMessage.className='payment-message error';
-    paymentMessage.textContent='Para este pedido de R$ 1,00 use Pix. O cartão exige valor mínimo compatível com as regras da operadora.';
+    paymentMessage.textContent='O valor deste pedido não atende ao mínimo exigido para cartão. Use Pix ou ajuste o valor do pedido.';
     return true;
   }
   if(data?.error==='asaas_checkout_rejected'){
     const providerDescription=Array.isArray(data?.provider_errors)
       ? data.provider_errors.map(x=>x?.description).filter(Boolean).join(' · ')
       : '';
+    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
     paymentMessage.className='payment-message error';
     paymentMessage.textContent=providerDescription
       ? 'O Asaas recusou a criação do checkout: '+providerDescription
@@ -266,6 +279,7 @@ async function tryAsaasCheckout(method){
     return true;
   }
   if(data?.error){
+    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
     paymentMessage.className='payment-message error';
     paymentMessage.textContent='Não foi possível iniciar o pagamento Asaas: '+data.error;
     return true;
@@ -286,11 +300,7 @@ async function renderPayment(){
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
- if(!cfg.mercadoPagoPublicKey){
-  paymentMessage.className='payment-message error';
-  paymentMessage.textContent='Checkout temporariamente indisponível.';
-  return;
- }
+ // O checkout principal é Asaas. O Mercado Pago não é requisito para renderizar esta tela.
  const existingAction=order.metadata?.payment_action||null;
  if(existingAction&&order.payment_status==='processing'){
   renderPaymentAction(existingAction);
@@ -309,8 +319,19 @@ async function renderPayment(){
    return;
   }
   if(['pix','card'].includes(method)){
-   const asaasStarted=await tryAsaasCheckout(method);
+   let paymentWindow=null;
+   if(window.self!==window.top){
+    paymentWindow=window.open('about:blank','oyag_asaas_checkout');
+    if(paymentWindow){
+     try{
+      paymentWindow.document.title='OYAG · Pagamento seguro';
+      paymentWindow.document.body.innerHTML='<div style="font-family:system-ui;padding:28px"><strong>OYAG Ecosystem</strong><p>Abrindo o pagamento seguro no Asaas…</p></div>';
+     }catch{}
+    }
+   }
+   const asaasStarted=await tryAsaasCheckout(method,paymentWindow);
    if(asaasStarted)return;
+   if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
   }
   if(method==='boleto'){
    paymentMessage.className='payment-message error';
