@@ -1,5 +1,15 @@
 const cfg=window.OYAG_CONFIG;
-const oyagStorage=localStorage.getItem('oyag_remember')!=='0'?localStorage:sessionStorage;
+const oyagStorage={
+ getItem(key){
+  const remember=localStorage.getItem('oyag_remember')!=='0',primary=remember?localStorage:sessionStorage,secondary=remember?sessionStorage:localStorage;
+  return primary.getItem(key)??secondary.getItem(key);
+ },
+ setItem(key,value){
+  const remember=localStorage.getItem('oyag_remember')!=='0',primary=remember?localStorage:sessionStorage,secondary=remember?sessionStorage:localStorage;
+  primary.setItem(key,value);secondary.removeItem(key);
+ },
+ removeItem(key){localStorage.removeItem(key);sessionStorage.removeItem(key)}
+};
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,storage:oyagStorage}});
 const id=new URLSearchParams(location.search).get('id');
 const statusEl=document.querySelector('#checkoutStatus');
