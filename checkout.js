@@ -16,6 +16,8 @@ const statusEl=document.querySelector('#checkoutStatus');
 const summaryEl=document.querySelector('#orderSummary');
 const paymentMessage=document.querySelector('#paymentMessage');
 const paymentActionEl=document.querySelector('#paymentAction');
+const paymentSelector=document.querySelector('#paymentSelector');
+let selectedMethod='card';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
 let session,checkout,orders=[],items=[];
@@ -77,72 +79,113 @@ function renderPaymentAction(action){
  }
 }
 
+async function mountPaymentBrick(method){
+ if(window.paymentBrickController?.unmount){
+  try{await window.paymentBrickController.unmount()}catch{}
+ }
+ const container=document.querySelector('#paymentBrick_container');
+ container.innerHTML='';
+ paymentActionEl.innerHTML='';
+ selectedMethod=method;
+ paymentSelector?.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.method===method));
+
+ const methodLabels={pix:'Pix',card:'Cartão',boleto:'Boleto'};
+ paymentMessage.className='payment-message';
+ paymentMessage.textContent='Carregando '+methodLabels[method]+'…';
+
+ const paymentMethods=method==='pix'
+  ? {bankTransfer:'all'}
+  : method==='boleto'
+    ? {ticket:'all'}
+    : {creditCard:'all',debitCard:'all',prepaidCard:'all'};
+
+ const mp=new MercadoPago(cfg.mercadoPagoPublicKey,{locale:'pt-BR'});
+ const bricksBuilder=mp.bricks();
+
+ try{
+  window.paymentBrickController=await bricksBuilder.create('payment','paymentBrick_container',{
+   initialization:{amount:Number(checkout.total_cents)/100},
+   customization:{paymentMethods},
+   callbacks:{
+    onReady:()=>{
+     paymentMessage.textContent=method==='pix'
+      ? 'Pague por Pix. O QR Code será gerado após confirmar os dados.'
+      : method==='boleto'
+        ? 'Pague por boleto. Preencha os dados solicitados para gerar o boleto.'
+        : 'Pague com cartão de crédito ou débito.';
+    },
+    onSubmit:({selectedPaymentMethod,formData})=>new Promise(async(resolve,reject)=>{
+     paymentMessage.className='payment-message';
+     paymentMessage.textContent='Processando '+methodLabels[method]+'…';
+     try{
+      const result=await invokePayment(selectedPaymentMethod,formData);
+      renderPaymentAction(result.payment_action||null);
+      paymentMessage.className='payment-message ok';
+      if(result.payment_status==='approved')paymentMessage.textContent='Pagamento aprovado. Pedido atualizado.';
+      else if(result.payment_action?.type==='pix')paymentMessage.textContent='Pix gerado. Use o QR Code ou o código copia e cola.';
+      else if(result.payment_action?.type==='boleto')paymentMessage.textContent='Boleto gerado. Use a linha digitável ou abra o boleto.';
+      else paymentMessage.textContent='Pagamento enviado. Aguardando confirmação do Mercado Pago.';
+      resolve();
+     }catch(e){
+      const code=String(e?.message||'');
+      const friendly={
+       payment_method_missing:'Não foi possível identificar a forma de pagamento. Selecione novamente.',
+       payer_document_required:'Informe CPF/CNPJ para continuar com este pagamento.',
+       boleto_address_required:'Preencha o endereço completo para gerar o boleto.',
+       unsupported_payment_method:'Esta forma de pagamento não está habilitada para esta conta Mercado Pago.',
+       mercado_pago_rejected:'O Mercado Pago não aceitou a solicitação. Revise os dados e tente novamente.'
+      };
+      paymentMessage.className='payment-message error';
+      paymentMessage.textContent=friendly[code]||code||'Não foi possível processar o pagamento.';
+      reject();
+     }
+    }),
+    onError:(error)=>{
+     console.error('OYAG_MP_BRICK',error);
+     paymentMessage.className='payment-message error';
+     paymentMessage.textContent='Este meio de pagamento não pôde ser carregado. Verifique se está habilitado na conta Mercado Pago.';
+    }
+   }
+  });
+ }catch(error){
+  console.error('OYAG_MP_BRICK_CREATE',error);
+  paymentMessage.className='payment-message error';
+  paymentMessage.textContent='Não foi possível disponibilizar '+methodLabels[method]+' neste momento.';
+ }
+}
+
 async function renderPayment(){
  if(orders.length!==1){
-  paymentMessage.textContent='O carrinho já está preparado para separar pedidos por empresa. O processamento financeiro multiempresa será ativado na etapa de conexão das contas vendedoras.';
+  paymentMessage.textContent='O processamento financeiro multiempresa será ativado após a conexão das contas vendedoras.';
+  paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
  const order=orders[0];
  if(['paid','preparing','shipped','delivered','awaiting_confirmation','completed'].includes(order.status)||order.payment_status==='approved'){
   paymentMessage.className='payment-message ok';
   paymentMessage.textContent='Pagamento confirmado. O pedido já está registrado no OYAG.';
+  paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
  if(!cfg.mercadoPagoPublicKey){
   paymentMessage.className='payment-message error';
-  paymentMessage.textContent='Checkout temporariamente indisponível: credencial pública de pagamento não configurada.';
+  paymentMessage.textContent='Checkout temporariamente indisponível.';
   return;
  }
- paymentMessage.innerHTML='<div class="payment-methods-note"><span>Pix</span><span>Cartão</span><span>Boleto</span></div>Escolha a forma de pagamento. Os dados sensíveis são tratados pelo Mercado Pago.';
  const existingAction=order.metadata?.payment_action||null;
- if(existingAction)renderPaymentAction(existingAction);
  if(existingAction&&order.payment_status==='processing'){
+  renderPaymentAction(existingAction);
   paymentMessage.className='payment-message ok';
   paymentMessage.textContent=existingAction.type==='pix'?'Pix aguardando pagamento.':'Boleto aguardando pagamento.';
+  paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
- const mp=new MercadoPago(cfg.mercadoPagoPublicKey,{locale:'pt-BR'});
- const bricksBuilder=mp.bricks();
- window.paymentBrickController=await bricksBuilder.create('payment','paymentBrick_container',{
-  initialization:{amount:Number(checkout.total_cents)/100},
-  customization:{
-   paymentMethods:{
-    bankTransfer:'all',
-    ticket:'all',
-    creditCard:'all',
-    debitCard:'all',
-    prepaidCard:'all'
-   }
-  },
-  callbacks:{
-   onReady:()=>{paymentMessage.innerHTML='<div class="payment-methods-note"><span>Pix</span><span>Cartão</span><span>Boleto</span></div>Escolha a opção desejada e conclua o pagamento.'},
-   onSubmit:({selectedPaymentMethod,formData})=>new Promise(async(resolve,reject)=>{
-    paymentMessage.className='payment-message';
-    paymentMessage.textContent='Processando pagamento…';
-    try{
-     const result=await invokePayment(selectedPaymentMethod,formData);
-     renderPaymentAction(result.payment_action||null);
-     paymentMessage.className='payment-message ok';
-     if(result.payment_status==='approved')paymentMessage.textContent='Pagamento aprovado. Pedido atualizado.';
-     else if(result.payment_action?.type==='pix')paymentMessage.textContent='Pix gerado. Conclua o pagamento pelo QR Code ou código Pix.';
-     else if(result.payment_action?.type==='boleto')paymentMessage.textContent='Boleto gerado. Use a linha digitável ou abra o boleto.';
-     else paymentMessage.textContent='Pagamento enviado. Aguardando confirmação do Mercado Pago.';
-     resolve();
-    }catch(e){
-     paymentMessage.className='payment-message error';
-     paymentMessage.textContent=e.message||'Não foi possível processar o pagamento.';
-     reject();
-    }
-   }),
-   onError:(error)=>{
-    console.error('OYAG_MP_BRICK',error);
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent='O formulário de pagamento encontrou um erro. Tente novamente.';
-   }
-  }
+ paymentSelector?.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-method]');
+  if(b&&!b.disabled&&b.dataset.method!==selectedMethod)mountPaymentBrick(b.dataset.method);
  });
+ await mountPaymentBrick('card');
 }
-
 async function init(){
  if(!id){statusEl.textContent='Pedido não informado.';return}
  const {data}=await sb.auth.getSession();
