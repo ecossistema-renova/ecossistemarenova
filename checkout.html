@@ -9,7 +9,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Checkout · OYAG Ecosystem</title>
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./checkout.css?v=checkout02">
+  <link rel="stylesheet" href="./checkout.css?v=checkout03">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://sdk.mercadopago.com/js/v2"></script>
   <script src="./config.production.js?v=prod-20260918-02"></script>
@@ -31,10 +31,10 @@
     <section class="checkout-card payment-card">
       <div class="section-title"><span>Pagamento</span><strong>Mercado Pago</strong></div>
       <div id="paymentMessage" class="payment-message">Aguardando o resumo do pedido…</div>
-      <div id="paymentAction"></div><div id="paymentBrick_container"></div>
+      <div class="payment-selector" id="paymentSelector"><button type="button" data-method="pix">Pix</button><button type="button" data-method="card" class="active">Cartão</button><button type="button" data-method="boleto">Boleto</button></div><div id="paymentAction"></div><div id="paymentBrick_container"></div>
     </section>
   </div>
 </main>
-<script src="./checkout.js?v=checkout03"></script>
+<script src="./checkout.js?v=checkout04"></script>
 </body>
 </html>
