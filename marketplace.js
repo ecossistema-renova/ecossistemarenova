@@ -31,35 +31,68 @@ async function startBuy(itemId){
  if(buying)return;
  const item=items.find(x=>x.id===itemId);
  if(!item){statusEl.textContent='Este produto não está disponível agora.';return}
+
  let {data:{session}}=await sb.auth.getSession();
  if(!session){
   const refreshed=await sb.auth.refreshSession().catch(()=>({data:{session:null}}));
   session=refreshed?.data?.session||null;
  }
- if(!session){
-  const next='./marketplace.html?buy='+encodeURIComponent(itemId);
-  location.href='./login.html?next='+encodeURIComponent(next);
-  return;
- }
+
  buying=true;
  statusEl.textContent='Criando seu pedido com o preço confirmado no servidor…';
  grid.querySelectorAll('[data-buy]').forEach(b=>b.disabled=true);
  const idem=crypto.randomUUID();
+
  try{
-  const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-create-checkout',{
-   method:'POST',
-   headers:{
-    apikey:cfg.supabasePublishableKey,
-    authorization:'Bearer '+session.access_token,
-    'content-type':'application/json',
-    'x-idempotency-key':idem
-   },
-   body:JSON.stringify({items:[{catalog_item_id:itemId,quantity:1}],idempotency_key:idem})
-  });
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok||!data.ok)throw new Error(data?.detail||data?.error||'Não foi possível criar o pedido.');
+  let data=null;
+  let guestToken=null;
+  let guestSessionId=null;
+
+  if(session){
+   const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-create-checkout',{
+    method:'POST',
+    headers:{
+     apikey:cfg.supabasePublishableKey,
+     authorization:'Bearer '+session.access_token,
+     'content-type':'application/json',
+     'x-idempotency-key':idem
+    },
+    body:JSON.stringify({items:[{catalog_item_id:itemId,quantity:1}],idempotency_key:idem})
+   });
+   data=await r.json().catch(()=>({}));
+   if(!r.ok||!data.ok)throw new Error(data?.detail||data?.error||'Não foi possível criar o pedido.');
+  }else{
+   guestSessionId=crypto.randomUUID();
+   guestToken=crypto.randomUUID();
+   const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-create-guest-checkout',{
+    method:'POST',
+    headers:{
+     apikey:cfg.supabasePublishableKey,
+     'content-type':'application/json',
+     'x-idempotency-key':idem
+    },
+    body:JSON.stringify({
+     guest_session_id:guestSessionId,
+     guest_token:guestToken,
+     idempotency_key:idem,
+     items:[{catalog_item_id:itemId,quantity:1}]
+    })
+   });
+   data=await r.json().catch(()=>({}));
+   if(!r.ok||!data.ok)throw new Error(data?.detail||data?.error||'Não foi possível criar o pedido como visitante.');
+  }
+
   const checkoutId=data.checkout?.checkout_id;
   if(!checkoutId)throw new Error('Checkout não retornado.');
+
+  if(guestToken){
+   sessionStorage.setItem('oyag_guest_checkout_'+checkoutId,JSON.stringify({
+    guest_token:guestToken,
+    guest_session_id:guestSessionId,
+    created_at:new Date().toISOString()
+   }));
+  }
+
   location.assign('./checkout.html?id='+encodeURIComponent(checkoutId));
  }catch(e){
   console.error('OYAG_BUY',e);
