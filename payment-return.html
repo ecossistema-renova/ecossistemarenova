@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Retorno do pagamento | OYAG Ecosystem</title>
+  <style>
+    :root{
+      color-scheme:light;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:#f5f7fb;
+      color:#172033;
+    }
+    .card{
+      width:min(560px,100%);
+      background:#fff;
+      border:1px solid #e5e9f2;
+      border-radius:22px;
+      padding:32px;
+      box-shadow:0 18px 50px rgba(23,32,51,.10);
+      text-align:center;
+    }
+    .mark{
+      width:64px;height:64px;border-radius:50%;
+      display:grid;place-items:center;margin:0 auto 18px;
+      font-size:30px;font-weight:800;background:#eef3ff;color:#3157d5;
+    }
+    h1{font-size:28px;margin:0 0 10px}
+    p{line-height:1.6;margin:0 0 18px;color:#526078}
+    .button{
+      display:inline-block;text-decoration:none;
+      padding:13px 20px;border-radius:12px;
+      background:#172033;color:#fff;font-weight:700;
+    }
+    .meta{font-size:12px;color:#7a879d;margin-top:18px;word-break:break-all}
+  </style>
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <div class="mark" id="mark">✓</div>
+    <h1 id="title">Pagamento concluído</h1>
+    <p id="message">Recebemos o retorno do pagamento. Você pode continuar no OYAG Ecosystem.</p>
+    <a class="button" href="./" id="continueButton">Continuar no OYAG</a>
+    <div class="meta" id="meta"></div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const status = (params.get("status") || "").toLowerCase();
+    const checkout = params.get("checkout") || "";
+    const title = document.getElementById("title");
+    const message = document.getElementById("message");
+    const mark = document.getElementById("mark");
+    const meta = document.getElementById("meta");
+
+    if (status === "cancel") {
+      mark.textContent = "↩";
+      title.textContent = "Pagamento cancelado";
+      message.textContent = "O pagamento não foi concluído. Você pode voltar ao OYAG e tentar novamente.";
+    } else if (status === "expired") {
+      mark.textContent = "!";
+      title.textContent = "Pagamento expirado";
+      message.textContent = "O prazo deste checkout terminou. Volte ao OYAG para gerar um novo pagamento.";
+    } else {
+      mark.textContent = "✓";
+      title.textContent = "Pagamento concluído";
+      message.textContent = "Recebemos o retorno do pagamento. A confirmação financeira é validada pelo sistema do OYAG.";
+    }
+
+    if (checkout) {
+      meta.textContent = "Checkout: " + checkout;
+    }
+
+    history.replaceState({}, document.title, location.pathname);
+  </script>
+</body>
+</html>
