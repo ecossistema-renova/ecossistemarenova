@@ -19,10 +19,20 @@ async function loadUserProjects(){
  if(role==='owner')return;
  const {data,error}=await sb.from('oyag_user_projects').select('id,name').eq('status','active').order('created_at');
  if(error)return;
+ const add=document.createElement('button');add.className='user-project-create';add.textContent='+ Novo projeto';add.onclick=createUserProject;nav.insertBefore(add,nav.querySelector('[data-view="admin"]'));
  (data||[]).forEach(p=>{
   const b=document.createElement('button');b.className='user-project-nav';b.dataset.userProject=p.id;b.textContent=p.name;
   nav.insertBefore(b,nav.querySelector('[data-view="admin"]'));
  });
+}
+async function createUserProject(){
+ const name=prompt('Nome do novo projeto:');if(!name||!name.trim())return;
+ const description=prompt('Descrição do projeto (opcional):')||null;
+ const {data,error}=await sb.rpc('oyag_create_user_project',{p_name:name.trim(),p_description:description});
+ if(error){alert('Não foi possível criar o projeto: '+error.message);return}
+ await loadUserProjects();
+ const b=[...document.querySelectorAll('#nav button[data-user-project]')].find(x=>x.dataset.userProject===data);
+ if(b){document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');await showUserProject(data,b.textContent)}
 }
 document.querySelector('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-user-project]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');showUserProject(b.dataset.userProject,b.textContent)});
 async function showUserProject(id,name){
