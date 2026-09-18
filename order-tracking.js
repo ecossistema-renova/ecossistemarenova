@@ -1,4 +1,7 @@
 const cfg=window.OYAG_CONFIG;
+const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
+});
 const C=document.querySelector('#trackingContent');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
@@ -19,6 +22,7 @@ function tokenFromHash(){
  return token;
 }
 const token=tokenFromHash();
+const checkoutId=new URLSearchParams(location.search).get('checkout');
 
 function orderCard(order){
  const shipments=Array.isArray(order.shipments)?order.shipments:[];
@@ -55,11 +59,20 @@ function orderCard(order){
 }
 
 async function load(){
- if(!token){C.innerHTML='<div class="tracking-empty"><h2>Link de acompanhamento inválido.</h2><p>Abra o link enviado pelo OYAG ou volte ao Marketplace.</p></div>';return}
+ if(!token&&!checkoutId){C.innerHTML='<div class="tracking-empty"><h2>Link de acompanhamento inválido.</h2><p>Abra o link enviado pelo OYAG ou volte ao Marketplace.</p></div>';return}
+ const headers={apikey:cfg.supabasePublishableKey,'content-type':'application/json'};
+ const body={};
+ if(token)body.token=token;
+ else{
+   const {data:{session}}=await sb.auth.getSession();
+   if(!session){C.innerHTML='<div class="tracking-empty"><h2>Entre na sua conta para acompanhar este pedido.</h2><p>Este link está associado à sua conta OYAG.</p></div>';return}
+   headers.authorization='Bearer '+session.access_token;
+   body.checkout_id=checkoutId;
+ }
  const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-order-tracking',{
   method:'POST',
-  headers:{apikey:cfg.supabasePublishableKey,'content-type':'application/json'},
-  body:JSON.stringify({token})
+  headers,
+  body:JSON.stringify(body)
  });
  const data=await r.json().catch(()=>({}));
  if(!r.ok||!data.ok){C.innerHTML='<div class="tracking-empty"><h2>Não foi possível localizar o pedido.</h2><p>O link pode ter expirado ou sido substituído.</p></div>';return}
