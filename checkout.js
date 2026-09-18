@@ -13,10 +13,61 @@ const summaryEl=document.querySelector('#orderSummary');
 const paymentMessage=document.querySelector('#paymentMessage');
 const paymentActionEl=document.querySelector('#paymentAction');
 const paymentSelector=document.querySelector('#paymentSelector');
-let selectedMethod='card';
+const paymentProviderLabel=document.querySelector('#paymentProviderLabel');
+const buyerDocumentInput=document.querySelector('#buyerDocument');
+const buyerDocumentError=document.querySelector('#buyerDocumentError');
+let selectedMethod=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
 let session,checkout,orders=[],items=[];
+
+function onlyDigits(v){return String(v||'').replace(/\D/g,'')}
+function formatDocument(v){
+ const d=onlyDigits(v).slice(0,14);
+ if(d.length<=11){
+  return d.replace(/(\d{3})(\d)/,'$1.$2')
+          .replace(/(\d{3})(\d)/,'$1.$2')
+          .replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+ }
+ return d.replace(/(\d{2})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d)/,'$1.$2')
+         .replace(/(\d{3})(\d)/,'$1/$2')
+         .replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+}
+function validCPF(cpf){
+ cpf=onlyDigits(cpf);
+ if(cpf.length!==11||/^(\d)\1+$/.test(cpf))return false;
+ let sum=0;for(let i=0;i<9;i++)sum+=Number(cpf[i])*(10-i);
+ let d=(sum*10)%11;if(d===10)d=0;if(d!==Number(cpf[9]))return false;
+ sum=0;for(let i=0;i<10;i++)sum+=Number(cpf[i])*(11-i);
+ d=(sum*10)%11;if(d===10)d=0;return d===Number(cpf[10]);
+}
+function validCNPJ(cnpj){
+ cnpj=onlyDigits(cnpj);
+ if(cnpj.length!==14||/^(\d)\1+$/.test(cnpj))return false;
+ const calc=(base,weights)=>{
+  const sum=base.split('').reduce((a,n,i)=>a+Number(n)*weights[i],0);
+  const r=sum%11;return r<2?0:11-r;
+ };
+ const d1=calc(cnpj.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]);
+ const d2=calc(cnpj.slice(0,12)+d1,[6,5,4,3,2,9,8,7,6,5,4,3,2]);
+ return d1===Number(cnpj[12])&&d2===Number(cnpj[13]);
+}
+function getBuyerIdentification(showError=true){
+ const number=onlyDigits(buyerDocumentInput?.value);
+ const type=number.length===11?'CPF':number.length===14?'CNPJ':null;
+ const valid=type==='CPF'?validCPF(number):type==='CNPJ'?validCNPJ(number):false;
+ if(showError&&buyerDocumentError){
+  buyerDocumentError.textContent=valid?'':'Informe um CPF ou CNPJ válido para continuar.';
+ }
+ return valid?{type,number}:null;
+}
+if(buyerDocumentInput){
+ buyerDocumentInput.addEventListener('input',()=>{
+  buyerDocumentInput.value=formatDocument(buyerDocumentInput.value);
+  if(buyerDocumentError.textContent)getBuyerIdentification(true);
+ });
+}
 
 function loginRedirect(){
  const next='./checkout.html?id='+encodeURIComponent(id||'');
@@ -34,6 +85,11 @@ function renderSummary(){
 }
 
 async function invokePayment(selectedPaymentMethod,formData){
+ const identification=getBuyerIdentification(true);
+ if(!identification)throw new Error('buyer_document_invalid');
+ formData=formData&&typeof formData==='object'?structuredClone(formData):{};
+ formData.payer=formData.payer&&typeof formData.payer==='object'?formData.payer:{};
+ formData.payer.identification=identification;
  const attemptId=crypto.randomUUID();
  const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-process-payment',{
   method:'POST',
@@ -83,6 +139,7 @@ async function mountPaymentBrick(method){
  container.innerHTML='';
  paymentActionEl.innerHTML='';
  selectedMethod=method;
+ if(paymentProviderLabel)paymentProviderLabel.textContent='Mercado Pago';
  paymentSelector?.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.method===method));
 
  const methodLabels={pix:'Pix',card:'Cartão',boleto:'Boleto'};
@@ -126,7 +183,8 @@ async function mountPaymentBrick(method){
       const code=String(e?.message||'');
       const friendly={
        payment_method_missing:'Não foi possível identificar a forma de pagamento. Selecione novamente.',
-       payer_document_required:'Informe CPF/CNPJ para continuar com este pagamento.',
+       payer_document_required:'Informe CPF ou CNPJ para continuar com este pagamento.',
+       buyer_document_invalid:'Informe um CPF ou CNPJ válido para continuar.',
        boleto_address_required:'Preencha o endereço completo para gerar o boleto.',
        unsupported_payment_method:'Esta forma de pagamento não está habilitada para esta conta Mercado Pago.',
        mercado_pago_rejected:'O Mercado Pago não aceitou a solicitação. Revise os dados e tente novamente.'
@@ -151,6 +209,8 @@ async function mountPaymentBrick(method){
 }
 
 async function tryAsaasCheckout(){
+  const identification=getBuyerIdentification(true);
+  if(!identification)return false;
   const attemptId=crypto.randomUUID();
   const r=await fetch(cfg.supabaseUrl+'/functions/v1/asaas-create-checkout',{
     method:'POST',
@@ -160,10 +220,11 @@ async function tryAsaasCheckout(){
       'content-type':'application/json',
       'x-idempotency-key':attemptId
     },
-    body:JSON.stringify({checkout_id:checkout.id})
+    body:JSON.stringify({checkout_id:checkout.id,buyer_document:identification})
   });
   const data=await r.json().catch(()=>({}));
   if(r.ok&&data?.ok&&data?.checkout_url){
+    if(paymentProviderLabel)paymentProviderLabel.textContent='Asaas';
     paymentMessage.className='payment-message ok';
     paymentMessage.textContent='Abrindo o checkout seguro Asaas…';
     location.assign(data.checkout_url);
@@ -193,9 +254,6 @@ async function renderPayment(){
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
- const asaasStarted=await tryAsaasCheckout();
- if(asaasStarted)return;
-
  if(!cfg.mercadoPagoPublicKey){
   paymentMessage.className='payment-message error';
   paymentMessage.textContent='Checkout temporariamente indisponível.';
@@ -209,11 +267,21 @@ async function renderPayment(){
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
- paymentSelector?.addEventListener('click',e=>{
+ paymentMessage.textContent='Informe CPF ou CNPJ e escolha a forma de pagamento.';
+ paymentSelector?.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-method]');
-  if(b&&!b.disabled&&b.dataset.method!==selectedMethod)mountPaymentBrick(b.dataset.method);
+  if(!b||b.disabled)return;
+  const method=b.dataset.method;
+  if(!getBuyerIdentification(true)){
+   buyerDocumentInput?.focus();
+   return;
+  }
+  if(['pix','card'].includes(method)){
+   const asaasStarted=await tryAsaasCheckout();
+   if(asaasStarted)return;
+  }
+  await mountPaymentBrick(method);
  });
- await mountPaymentBrick('card');
 }
 async function init(){
  if(!id){statusEl.textContent='Pedido não informado.';return}
