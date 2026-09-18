@@ -77,6 +77,21 @@ function loginRedirect(){
  const next='./checkout.html?id='+encodeURIComponent(id||'');
  location.replace('./login.html?next='+encodeURIComponent(next));
 }
+function navigateToProviderCheckout(url){
+ const target=String(url||'').trim();
+ if(!target)return false;
+ try{
+  if(window.top&&window.top!==window.self){
+   window.top.location.href=target;
+  }else{
+   window.location.href=target;
+  }
+  return true;
+ }catch(e){
+  const w=window.open(target,'_blank','noopener,noreferrer');
+  return !!w;
+ }
+}
 
 function renderSummary(){
  const byOrder=new Map(orders.map(o=>[o.id,[]]));
