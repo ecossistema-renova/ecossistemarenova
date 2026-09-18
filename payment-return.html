@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Pagamento · OYAG Ecosystem</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./checkout.css?v=checkout03">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.production.js?v=prod-20260918-02"></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./marketplace.html"><span class="brand-mark">O</span><span><strong>OYAG Ecosystem</strong><small>Pagamento seguro</small></span></a>
+  <div class="header-actions"><a class="button ghost" href="./marketplace.html">Marketplace</a></div>
+</header>
+<main class="checkout-page">
+  <section class="checkout-heading">
+    <p class="eyebrow">PAGAMENTO OYAG</p>
+    <h1 id="paymentReturnTitle">Confirmando seu pagamento.</h1>
+    <p id="paymentReturnText">O retorno do provedor ajuda na navegação, mas a confirmação financeira é feita pelo webhook do OYAG.</p>
+  </section>
+  <section class="checkout-card" style="max-width:720px;margin-top:24px">
+    <div id="paymentReturnStatus" class="checkout-status">Consultando o pedido…</div>
+    <div class="secure-note">Você pode fechar esta página depois que o status do pedido for atualizado. O OYAG não considera apenas o redirecionamento do navegador como confirmação financeira.</div>
+    <div class="catalog-actions" style="margin-top:18px">
+      <a class="button primary" id="returnCheckoutLink" href="./marketplace.html">Voltar ao Marketplace</a>
+      <a class="button secondary" href="./dashboard.html">Abrir minha conta</a>
+    </div>
+  </section>
+</main>
+<script src="./payment-return.js?v=asaas01"></script>
+</body>
+</html>
