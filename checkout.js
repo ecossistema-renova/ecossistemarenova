@@ -212,7 +212,7 @@ async function mountPaymentBrick(method){
  }
 }
 
-async function tryAsaasCheckout(){
+async function tryAsaasCheckout(method){
   const identification=getBuyerIdentification(true);
   if(!identification)return false;
   const attemptId=crypto.randomUUID();
@@ -224,7 +224,7 @@ async function tryAsaasCheckout(){
       'content-type':'application/json',
       'x-idempotency-key':attemptId
     },
-    body:JSON.stringify({checkout_id:checkout.id,buyer_document:identification})
+    body:JSON.stringify({checkout_id:checkout.id,buyer_document:identification,payment_method:method})
   });
   const data=await r.json().catch(()=>({}));
   if(r.ok&&data?.ok&&data?.checkout_url){
@@ -248,6 +248,21 @@ async function tryAsaasCheckout(){
     if(paymentSelector) paymentSelector.style.display='none';
     const mpContainer=document.querySelector('#paymentBrick_container');
     if(mpContainer) mpContainer.innerHTML='';
+    return true;
+  }
+  if(data?.error==='asaas_card_minimum_amount'){
+    paymentMessage.className='payment-message error';
+    paymentMessage.textContent='Para este pedido de R$ 1,00 use Pix. O cartão exige valor mínimo compatível com as regras da operadora.';
+    return true;
+  }
+  if(data?.error==='asaas_checkout_rejected'){
+    const providerDescription=Array.isArray(data?.provider_errors)
+      ? data.provider_errors.map(x=>x?.description).filter(Boolean).join(' · ')
+      : '';
+    paymentMessage.className='payment-message error';
+    paymentMessage.textContent=providerDescription
+      ? 'O Asaas recusou a criação do checkout: '+providerDescription
+      : 'O Asaas recusou a criação do checkout. O erro foi registrado para diagnóstico.';
     return true;
   }
   if(data?.error){
@@ -294,10 +309,16 @@ async function renderPayment(){
    return;
   }
   if(['pix','card'].includes(method)){
-   const asaasStarted=await tryAsaasCheckout();
+   const asaasStarted=await tryAsaasCheckout(method);
    if(asaasStarted)return;
   }
-  await mountPaymentBrick(method);
+  if(method==='boleto'){
+   paymentMessage.className='payment-message error';
+   paymentMessage.textContent='Boleto Asaas será habilitado pelo fluxo de cobrança próprio. Ele não será enviado ao Mercado Pago.';
+   return;
+  }
+  paymentMessage.className='payment-message error';
+  paymentMessage.textContent='Forma de pagamento temporariamente indisponível.';
  });
 }
 async function init(){
