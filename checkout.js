@@ -1,4 +1,9 @@
 const cfg=window.OYAG_CONFIG;
+const legacySessionKey='sb-'+new URL(cfg.supabaseUrl).hostname.split('.')[0]+'-auth-token';
+if(!localStorage.getItem(legacySessionKey)&&sessionStorage.getItem(legacySessionKey)){
+  localStorage.setItem(legacySessionKey,sessionStorage.getItem(legacySessionKey));
+  sessionStorage.removeItem(legacySessionKey);
+}
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
 });
