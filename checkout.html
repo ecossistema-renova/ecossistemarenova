@@ -11,7 +11,6 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./checkout.css?v=checkout04">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://sdk.mercadopago.com/js/v2"></script>
   <script src="./config.production.js?v=prod-20260918-02"></script>
 </head>
 <body>
@@ -29,7 +28,7 @@
   <div class="checkout-layout">
     <section id="orderSummary" class="checkout-card"></section>
     <section class="checkout-card payment-card">
-      <div class="section-title"><span>Pagamento</span><strong id="paymentProviderLabel">Pagamento seguro</strong></div>
+      <div class="section-title"><span>Pagamento</span><strong id="paymentProviderLabel">Asaas</strong></div>
       <div id="paymentMessage" class="payment-message">Aguardando o resumo do pedido…</div>
       <div class="buyer-identification">
         <label for="buyerDocument">CPF ou CNPJ do comprador</label>
@@ -37,10 +36,10 @@
         <small>Use CPF para pessoa física ou CNPJ para empresa. O documento é enviado somente ao processador de pagamento durante a cobrança.</small>
         <div id="buyerDocumentError" class="field-error" aria-live="polite"></div>
       </div>
-      <div class="payment-selector" id="paymentSelector"><button type="button" data-method="pix">Pix</button><button type="button" data-method="card">Cartão</button><button type="button" data-method="boleto">Boleto</button></div><div id="paymentAction"></div><div id="paymentBrick_container"></div>
+      <div class="payment-selector" id="paymentSelector"><button type="button" data-method="pix">Pix</button><button type="button" data-method="card">Cartão</button><button type="button" data-method="boleto" disabled title="Em implantação">Boleto em breve</button></div><div id="paymentAction"></div><div id="paymentBrick_container"></div>
     </section>
   </div>
 </main>
-<script src="./checkout.js?v=asaas14"></script>
+<script src="./checkout.js?v=asaas15"></script>
 </body>
 </html>
