@@ -1,18 +1,49 @@
-/* OYAG Mobile: apresentação independente */
+/* OYAG Mobile — revisão responsiva */
 html,body{width:100%;max-width:100%;overflow-x:hidden}
-.topbar{height:70px;padding:0 14px}
+body{min-width:0}
+img,video,iframe{max-width:100%;height:auto}
+main,.hero,.section,.cta,footer{width:100%;max-width:100%}
+.topbar{height:64px;padding:0 12px;gap:10px}
 .topbar nav,.brand small,.header-actions .ghost{display:none}
-.header-actions .button{padding:10px 12px;font-size:.76rem}
-.hero{padding:44px 18px 70px;display:grid;grid-template-columns:1fr;gap:36px;min-height:auto}
-.hero h1{font-size:2.65rem}
-.hero-actions{display:grid}
-.hero-panel{padding:12px;max-width:none}
-.orbit{height:260px}
-.numbers{margin:0;border-radius:0;grid-template-columns:1fr;padding:15px}
-.numbers div{border-right:0;border-bottom:1px solid var(--line);justify-content:flex-start}
-.section{padding:65px 18px}
-.cards,.steps,.split{grid-template-columns:1fr}
-.split{gap:35px}
-.cta{padding:65px 18px}
-footer{display:grid}
-footer p{text-align:left}
+.brand{min-width:0;gap:9px}
+.brand strong{font-size:.82rem}
+.brand-mark{width:34px;height:34px;box-shadow:0 0 0 3px var(--navy)}
+.header-actions{margin-left:auto}
+.header-actions .button{padding:9px 10px;font-size:.72rem;white-space:nowrap}
+.hero{padding:30px 16px 38px;display:grid;grid-template-columns:minmax(0,1fr);gap:22px;min-height:auto}
+.hero-copy,.hero-panel{min-width:0}
+.hero h1{font-size:clamp(1.95rem,9vw,2.6rem);line-height:1.02;letter-spacing:-.045em;max-width:none}
+.lead{font-size:.97rem;line-height:1.55;margin:18px 0 22px}
+.hero-actions{display:grid;grid-template-columns:1fr;gap:9px}
+.hero-actions .button{width:100%;min-height:46px}
+.trust-list{gap:9px 14px;margin-top:18px;font-size:.76rem}
+.hero-panel{padding:10px;border-radius:18px}
+.orbit{height:210px;border-radius:14px}
+.orbit:before{width:170px;height:170px}.orbit:after{width:110px;height:110px}
+.core{width:64px;height:64px;font-size:1.55rem}
+.node{padding:6px 8px;font-size:.66rem}
+.panel-note{margin-top:12px}.panel-note span{font-size:.76rem}
+.numbers{margin:0;border-radius:0;grid-template-columns:1fr;padding:10px 16px;box-shadow:none}
+.numbers div{border-right:0;border-bottom:1px solid var(--line);justify-content:flex-start;padding:11px 0}
+.numbers div:last-child{border-bottom:0}
+.numbers strong{font-size:1.4rem}.numbers span{max-width:none;font-size:.76rem}
+.section{padding:44px 16px}
+.section-heading{margin-bottom:24px}
+.section-heading h2,.split h2,.cta h2{font-size:clamp(1.75rem,7.5vw,2.35rem)}
+.cards,.steps,.split{grid-template-columns:minmax(0,1fr)}
+.cards,.steps{gap:12px}
+.card{min-height:auto;padding:20px}
+.card h3{margin:14px 0 8px}
+.split{gap:24px}
+.learning-card{padding:20px}
+.cta{padding:46px 16px}
+.cta>div{display:grid;grid-template-columns:1fr;gap:9px}
+.cta .button{width:100%}
+footer{display:grid;padding:28px 16px;gap:16px}
+footer p{text-align:left;margin:0}
+@media(max-width:360px){
+  .topbar{padding:0 9px}
+  .header-actions .button{font-size:.68rem;padding:8px}
+  .hero{padding-left:13px;padding-right:13px}
+  .section{padding-left:13px;padding-right:13px}
+}
