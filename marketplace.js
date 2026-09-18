@@ -1,16 +1,7 @@
 const cfg=window.OYAG_CONFIG;
-const oyagStorage={
- getItem(key){
-  const remember=localStorage.getItem('oyag_remember')!=='0',primary=remember?localStorage:sessionStorage,secondary=remember?sessionStorage:localStorage;
-  return primary.getItem(key)??secondary.getItem(key);
- },
- setItem(key,value){
-  const remember=localStorage.getItem('oyag_remember')!=='0',primary=remember?localStorage:sessionStorage,secondary=remember?sessionStorage:localStorage;
-  primary.setItem(key,value);secondary.removeItem(key);
- },
- removeItem(key){localStorage.removeItem(key);sessionStorage.removeItem(key)}
-};
-const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,storage:oyagStorage}});
+const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
+ auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
+});
 const grid=document.querySelector('#marketGrid'),statusEl=document.querySelector('#marketStatus'),searchEl=document.querySelector('#search'),catEl=document.querySelector('#category'),orderEl=document.querySelector('#order');
 let items=[],buying=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -35,8 +26,11 @@ async function startBuy(itemId){
  if(buying)return;
  const item=items.find(x=>x.id===itemId);
  if(!item){statusEl.textContent='Este produto não está disponível agora.';return}
- const {data}=await sb.auth.getSession();
- const session=data.session;
+ let {data:{session}}=await sb.auth.getSession();
+ if(!session){
+  const refreshed=await sb.auth.refreshSession().catch(()=>({data:{session:null}}));
+  session=refreshed?.data?.session||null;
+ }
  if(!session){
   const next='./marketplace.html?buy='+encodeURIComponent(itemId);
   location.href='./login.html?next='+encodeURIComponent(next);
