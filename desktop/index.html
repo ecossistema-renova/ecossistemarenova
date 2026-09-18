@@ -5,11 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="OYAG Ecosystem: negócios, aprendizagem, gestão e oportunidades em uma única conta.">
   <title>OYAG Ecosystem</title>
-  <link rel="stylesheet" href="../styles.css?v=layout-fix-20260918-01">
+  <link rel="stylesheet" href="../styles.css?v=layout-fix-20260918-02">
   <meta name="robots" content="index,follow">
   <script src="../config.production.js?v=prod-20260918-01" defer></script>
 </head>
 <body>
+<script>
+(function(){
+  var sw=Math.min(window.screen.width||9999, window.screen.availWidth||9999);
+  var coarse=window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if(sw<=767 && coarse) document.body.classList.add('oyag-real-mobile');
+})();
+</script>
 <header class="topbar">
   <a class="brand" href="#inicio" aria-label="OYAG Ecosystem"><span class="brand-mark">O</span><span><strong>OYAG Ecosystem</strong><small>Pessoas · Tecnologia · Resultados</small></span></a>
   <nav aria-label="Navegação principal"><a href="#solucoes">Soluções</a><a href="#como-funciona">Como funciona</a><a href="#faculdade">Faculdade</a></nav>
