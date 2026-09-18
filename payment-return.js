@@ -22,9 +22,18 @@ const trackingToken=checkoutId
   ? (sessionStorage.getItem('oyag_tracking_'+checkoutId)||localStorage.getItem('oyag_tracking_'+checkoutId))
   : null;
 
-if(trackingToken&&track){
-  track.hidden=false;
-  track.href='./order-tracking.html#token='+encodeURIComponent(trackingToken);
+if(track){
+  if(trackingToken){
+    track.hidden=false;
+    track.href='./order-tracking.html#token='+encodeURIComponent(trackingToken);
+  }else if(checkoutId){
+    sb.auth.getSession().then(({data})=>{
+      if(data?.session){
+        track.hidden=false;
+        track.href='./order-tracking.html?checkout='+encodeURIComponent(checkoutId);
+      }
+    }).catch(()=>{});
+  }
 }
 
 async function publicTrackingStatus(){
