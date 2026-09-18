@@ -1,6 +1,6 @@
-# Ecossistema RENOVA
+# OYAG Ecosystem
 
-Reestruturação oficial do Ecossistema RENOVA.
+Reestruturação oficial do OYAG Ecosystem.
 
 ## Stack
 - Next.js 16 (Active LTS)
