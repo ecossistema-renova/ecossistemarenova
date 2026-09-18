@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Faculdade OYAG</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../desktop/" aria-label="Voltar ao OYAG Ecosystem">
+      <span class="brand-mark">O</span>
+      <span><strong>Faculdade OYAG</strong><small>Ecossistema OYAG Global</small></span>
+    </a>
+    <div class="student"><span class="status-dot"></span><span><small>Perfil conectado</small><strong>Aluno piloto</strong></span></div>
+  </header>
+  <main id="inicio" class="layout">
+    <aside class="sidebar">
+      <p class="eyebrow">Curso atual</p><h1>Programação do básico ao Hard</h1>
+      <div class="progress-label"><span>Progresso do nível</span><strong id="progressText">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div>
+      <nav class="phases" aria-label="Fases do curso">
+        <button class="phase active" data-phase="1"><span>1</span><div><strong>O que é programação?</strong><small>Disponível agora</small></div></button>
+        <button class="phase locked" data-phase="2" disabled><span>2</span><div><strong>Variáveis e valores</strong><small>Conclua a fase 1</small></div></button>
+        <button class="phase locked" data-phase="3" disabled><span>3</span><div><strong>Operadores</strong><small>Bloqueada</small></div></button>
+      </nav>
+      <div class="level-card"><span>Nível atual</span><strong>1 — Iniciante</strong><small>O nível é conquistado, nunca comprado.</small></div>
+    </aside>
+    <section class="classroom">
+      <div class="hero">
+        <div><p class="eyebrow">Nível 1 · Fase 1</p><h2>O que é programação?</h2><p>Aprenda o conceito, execute seu primeiro algoritmo e prove que compreendeu para liberar a próxima fase.</p></div>
+        <div class="score"><span>Critério</span><strong>100%</strong><small>dos requisitos essenciais</small></div>
+      </div>
+      <article class="lesson card">
+        <div class="card-title"><span class="icon">01</span><div><p class="eyebrow">Aprender</p><h3>Entrada, processamento e saída</h3></div></div>
+        <p>Programar é organizar instruções para que um computador resolva um problema. Um programa recebe dados, processa esses dados e apresenta um resultado.</p>
+        <div class="concepts"><div><span>Entrada</span><strong>Preço e quantidade</strong></div><div><span>Processamento</span><strong>Preço × quantidade</strong></div><div><span>Saída</span><strong>Valor total</strong></div></div>
+        <div class="theory-steps">
+          <div><span>1</span><p><strong>Entrada</strong> são os valores que o programa recebe. Neste exercício: <code>53.99</code> e <code>8</code>.</p></div>
+          <div><span>2</span><p><strong>Processamento</strong> é a operação realizada. Precisamos multiplicar o valor pela quantidade.</p></div>
+          <div><span>3</span><p><strong>Saída</strong> é o resultado mostrado: <code>431.92</code>.</p></div>
+        </div>
+        <section class="code-explainer">
+          <p class="eyebrow">Entenda cada comando</p>
+          <h4>Vamos traduzir o código para linguagem comum</h4>
+          <div class="command-list">
+            <div><code>const</code><p>Cria um espaço para guardar uma informação que não será trocada durante este exercício.</p></div>
+            <div><code>valorPorServico</code><p>É o nome dado ao espaço que guarda o valor <strong>53.99</strong>. Nomes claros ajudam a entender o programa.</p></div>
+            <div><code>=</code><p>Atribui um valor. Leia como: “recebe”. Exemplo: <code>quantidade = 8</code>.</p></div>
+            <div><code>*</code><p>É o operador de multiplicação em JavaScript. Ele multiplica o valor pela quantidade.</p></div>
+            <div><code>total</code><p>Guarda o resultado do cálculo <code>valorPorServico * quantidade</code>.</p></div>
+            <div><code>console.log(total)</code><p>Mostra no console o valor guardado em <code>total</code>, permitindo conferir o resultado.</p></div>
+            <div><code>;</code><p>Marca o fim de uma instrução. Neste curso vamos usá-lo para deixar o código organizado.</p></div>
+          </div>
+          <div class="translated-code">
+            <code>const total = valorPorServico * quantidade;</code>
+            <p><strong>Tradução:</strong> crie uma informação chamada “total” e guarde nela o valor do serviço multiplicado pela quantidade.</p>
+          </div>
+        </section>
+        <div class="example-box">
+          <p class="eyebrow">Exemplo resolvido</p>
+          <code>const resultado = 10 * 3;</code>
+          <p>Em JavaScript, o asterisco <strong>*</strong> é o operador de multiplicação. O exemplo acima resulta em <strong>30</strong>.</p>
+        </div>
+      </article>
+        <section class="checkpoint" aria-labelledby="checkpointTitle">
+          <p class="eyebrow">Antes de praticar</p>
+          <h4 id="checkpointTitle">Confirme o que você entendeu</h4>
+          <p>Responda às três perguntas. Quando compreender os conceitos, o laboratório será liberado.</p>
+          <fieldset class="question" data-question="const">
+            <legend>1. Para que usamos <code>const</code>?</legend>
+            <div class="answer-grid"><button type="button" data-correct="true">Para criar e guardar uma informação</button><button type="button" data-correct="false">Para apagar o programa</button><button type="button" data-correct="false">Para multiplicar números</button></div>
+            <p class="question-feedback" aria-live="polite"></p>
+          </fieldset>
+          <fieldset class="question" data-question="multiply">
+            <legend>2. Qual símbolo representa multiplicação em JavaScript?</legend>
+            <div class="answer-grid"><button type="button" data-correct="false">x</button><button type="button" data-correct="true">*</button><button type="button" data-correct="false">#</button></div>
+            <p class="question-feedback" aria-live="polite"></p>
+          </fieldset>
+          <fieldset class="question" data-question="output">
+            <legend>3. O que <code>console.log(total)</code> faz?</legend>
+            <div class="answer-grid"><button type="button" data-correct="false">Muda o valor de total</button><button type="button" data-correct="true">Mostra o valor guardado em total</button><button type="button" data-correct="false">Fecha o programa</button></div>
+            <p class="question-feedback" aria-live="polite"></p>
+          </fieldset>
+          <div id="checkpointStatus" class="checkpoint-status">0 de 3 conceitos confirmados</div>
+        </section>
+      <article class="lab card">
+        <div class="card-title"><span class="icon code">&lt;/&gt;</span><div><p class="eyebrow">Praticar</p><h3>Laboratório de código</h3></div></div>
+        <p>Complete o código para calcular o valor de 8 serviços a R$ 53,99 cada.</p>
+        <div class="instruction-box">
+          <strong>O que você deve fazer</strong>
+          <p>Localize os três traços <code>___</code> na linha que calcula <code>total</code> e substitua por <code>*</code>. Depois clique em <strong>Executar e avaliar</strong>.</p>
+        </div>
+        <label for="codeEditor">Seu código JavaScript</label>
+        <textarea id="codeEditor" spellcheck="false">const valorPorServico = 53.99;
+const quantidade = 8;
+const total = valorPorServico ___ quantidade;
+
+console.log(total);</textarea>
+        <div class="lab-actions"><button id="runButton" class="primary">Executar e avaliar</button><button id="hintButton" class="secondary">Receber uma dica</button></div>
+        <div id="feedback" class="feedback neutral" aria-live="polite"><strong>Pronto para testar.</strong><span>Substitua os três traços pelo operador correto.</span></div>
+      </article>
+      <article class="requirements card">
+        <div class="card-title"><span class="icon">✓</span><div><p class="eyebrow">Comprovar domínio</p><h3>Requisitos da fase</h3></div></div>
+        <ul><li id="reqSyntax"><span></span>Código executa sem erro</li><li id="reqOperator"><span></span>Operador de multiplicação utilizado corretamente</li><li id="reqResult"><span></span>Resultado exato: R$ 431,92</li><li id="reqHidden"><span></span>Teste oculto com outros valores</li></ul>
+        <button id="nextButton" class="next" disabled>Próxima fase bloqueada 🔒</button>
+      </article>
+    </section>
+  </main>
+  <a class="academy-back" href="./">← Voltar à OYAG Academy</a><script src="./app.js"></script>
+</body>
+</html>
