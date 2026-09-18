@@ -106,7 +106,7 @@ reset();
 runButton.addEventListener('click',evaluate);
 hintButton.addEventListener('click',()=>{
   feedback.className='feedback neutral';
-  feedback.innerHTML='<strong>Dica do Mentor RENOVA</strong><span>Em JavaScript, o símbolo usado para multiplicar é um asterisco. Experimente substituir os três traços por ele.</span>';
+  feedback.innerHTML='<strong>Dica do Mentor OYAG</strong><span>Em JavaScript, o símbolo usado para multiplicar é um asterisco. Experimente substituir os três traços por ele.</span>';
 });
 nextButton.addEventListener('click',()=>{
   document.querySelector('[data-phase="2"]').disabled=false;
