@@ -6,7 +6,7 @@ if(!localStorage.getItem(legacySessionKey)&&sessionStorage.getItem(legacySession
 }
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
-});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));async function init(){const {data}=await sb.auth.getSession();session=data.session;if(!session){location.replace('./login.html');return}document.querySelector('#userEmail').textContent=session.user.email;const {data:r}=await sb.from('platform_roles').select('role').eq('user_id',session.user.id).maybeSingle();role=r?.role||'usuário';document.querySelector('#role').textContent=role==='owner'?'Conta Dono':role;const internal=document.querySelector('#internalProjectNav');if(internal&&!['owner','platform_admin'].includes(role))internal.remove();await loadUserProjects();show('overview')}document.querySelector('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('./')};const dev=document.querySelector('#developerInfo');if(dev)dev.onclick=()=>{C.innerHTML='<div class="panel developer-profile"><p class="eyebrow">DESENVOLVIMENTO</p><h2>OYAG Ecosystem</h2><p><b>Cledemilson Oliveira de Assis</b></p><p class="muted">Responsável pelo produto e desenvolvimento do ecossistema.</p></div>';title.textContent='Desenvolvedor'};document.querySelector('#nav').onclick=e=>{const b=e.target.closest('button[data-view]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');show(b.dataset.view)};const cards=(items)=>'<div class="grid">'+items.map(x=>'<article class="metric"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2]||'')+'</small></article>').join('')+'</div>';async function count(table,filter){let q=sb.from(table).select('*',{count:'exact',head:true});if(filter)q=filter(q);const {count,error}=await q;return error?'—':count}async function show(v){C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};title.textContent=names[v];if(v==='catalog'){await showCatalog();return}if(v==='project'){await showProject();return}if(v==='performance'){await showPerformance();return}if(v==='finance'){await showFinance();return}if(v==='overview'){await overview();return}const map={companies:'organizations',units:'oyag_owner_unit_overview',network:'oyag_affiliate_memberships',finance:'oyag_ledger_account_balances',alerts:'oyag_operational_alerts',admin:'platform_roles'};const {data,error}=await sb.from(map[v]).select('*').limit(50);if(error){C.innerHTML=statePanel('Não foi possível carregar esta área','Tente novamente. Se o problema continuar, procure o suporte.');return}C.innerHTML=renderDomain(v,data||[])}async function showProject(){
+});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));async function init(){const {data}=await sb.auth.getSession();session=data.session;if(!session){location.replace('./login.html');return}document.querySelector('#userEmail').textContent=session.user.email;const {data:r}=await sb.from('platform_roles').select('role').eq('user_id',session.user.id).maybeSingle();role=r?.role||'usuário';document.querySelector('#role').textContent=role==='owner'?'Conta Dono':role;const internal=document.querySelector('#internalProjectNav');if(internal&&!['owner','platform_admin'].includes(role))internal.remove();await loadUserProjects();show('overview')}document.querySelector('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('./')};const dev=document.querySelector('#developerInfo');if(dev)dev.onclick=()=>{C.innerHTML='<div class="panel developer-profile"><p class="eyebrow">DESENVOLVIMENTO</p><h2>OYAG Ecosystem</h2><p><b>Cledemilson Oliveira de Assis</b></p><p class="muted">Responsável pelo produto e desenvolvimento do ecossistema.</p></div>';title.textContent='Desenvolvedor'};document.querySelector('#nav').onclick=e=>{const b=e.target.closest('button[data-view]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');show(b.dataset.view)};const cards=(items)=>'<div class="grid">'+items.map(x=>'<article class="metric"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2]||'')+'</small></article>').join('')+'</div>';async function count(table,filter){let q=sb.from(table).select('*',{count:'exact',head:true});if(filter)q=filter(q);const {count,error}=await q;return error?'—':count}async function show(v){C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};title.textContent=names[v];if(v==='catalog'){await showCatalog();return}if(v==='project'){await showProject();return}if(v==='performance'){await showPerformance();return}if(v==='finance'){await showFinance();return}if(v==='admin'){await showAdmin();return}if(v==='overview'){await overview();return}const map={companies:'organizations',units:'oyag_owner_unit_overview',network:'oyag_affiliate_memberships',finance:'oyag_ledger_account_balances',alerts:'oyag_operational_alerts',admin:'platform_roles'};const {data,error}=await sb.from(map[v]).select('*').limit(50);if(error){C.innerHTML=statePanel('Não foi possível carregar esta área','Tente novamente. Se o problema continuar, procure o suporte.');return}C.innerHTML=renderDomain(v,data||[])}async function showProject(){
  const [{data:tasks,error},{data:phases}]=await Promise.all([sb.from('oyag_project_tasks').select('id,title,description,status,priority,sector,phase_id,blocked_reason,completed_at,position,due_date').order('position'),sb.from('oyag_project_phases').select('id,name,position').order('position')]);
  if(error){C.innerHTML=statePanel('Não foi possível carregar o Projeto OYAG','Tente novamente.');return}
  const statuses=[['backlog','Backlog'],['todo','A Fazer'],['in_progress','Em andamento'],['blocked','Bloqueado'],['review','Revisão'],['done','Concluído']],total=tasks.length,done=tasks.filter(t=>t.status==='done').length,pct=total?Math.round(done*100/total):0;
@@ -281,4 +281,44 @@ async function archiveCatalog(id){
  if(!confirm('Arquivar este item? Ele deixará de aparecer no Marketplace.'))return;
  const {error}=await sb.rpc('oyag_manage_catalog_item',{p_action:'archive',p_item_id:id});
  if(error)alert('Não foi possível arquivar: '+error.message);else showCatalog();
+}
+
+async function showAdmin(){
+ if(!['owner','platform_admin'].includes(role)){C.innerHTML=statePanel('Acesso administrativo restrito','Esta área está disponível apenas para perfis autorizados.');return}
+ C.innerHTML='<div class="loading">Validando integrações administrativas…</div>';
+ let validation=null;
+ try{
+  const r=await fetch(cfg.supabaseUrl+'/functions/v1/asaas-validate-connection',{
+   method:'POST',
+   headers:{
+    apikey:cfg.supabasePublishableKey,
+    authorization:'Bearer '+session.access_token,
+    'content-type':'application/json'
+   },
+   body:'{}'
+  });
+  validation=await r.json().catch(()=>({ok:false,error:'invalid_response'}));
+ }catch(e){validation={ok:false,error:'connection_error'}}
+ const nextMap={
+  activate_asaas_checkout:'Integração apta para ativação do checkout Asaas.',
+  use_legal_entity_parent_account:'A conta-pai precisa ser Pessoa Jurídica (CNPJ) para criar subcontas Asaas.',
+  complete_asaas_account_approval:'A conta Asaas ainda precisa concluir a aprovação cadastral.',
+  confirm_marketplace_subaccount_access:'A API está válida, mas o acesso de marketplace/subcontas precisa ser confirmado.',
+  review_credentials:'Revise as credenciais/configuração Asaas.'
+ };
+ const ok=validation?.ok===true;
+ const status=esc(validation?.activation_status||validation?.error||'não validado');
+ C.innerHTML='<div class="admin-integrations"><div class="panel integration-card"><div class="panel-heading"><div><p class="eyebrow">PAGAMENTOS</p><h2>Asaas · Marketplace multiempresa</h2></div><span class="integration-status '+(ok?'ready':'attention')+'">'+status+'</span></div>'+
+ '<div class="integration-grid">'+
+ '<div><span>API Key</span><strong>'+(validation?.api_key_present===false?'Ausente':validation?.ok?'Validada':'Configurada')+'</strong></div>'+
+ '<div><span>Webhook Token</span><strong>'+(validation?.webhook_token_present===false?'Ausente':'Configurado')+'</strong></div>'+
+ '<div><span>Conta Asaas</span><strong>'+esc(validation?.account_general_status||'—')+'</strong></div>'+
+ '<div><span>Tipo da conta-pai</span><strong>'+esc(validation?.parent_person_type||'—')+'</strong></div>'+
+ '<div><span>Wallet da conta-pai</span><strong>'+(validation?.parent_wallet_detected?'Identificada':'—')+'</strong></div>'+
+ '<div><span>API de subcontas</span><strong>'+(validation?.subaccount_api_reachable?'Disponível':'Não confirmada')+'</strong></div>'+
+ '</div>'+
+ '<div class="integration-message '+(ok?'ok':'warn')+'">'+esc(nextMap[validation?.next_step]||'Validação concluída. Verifique o status acima.')+'</div>'+
+ '<div class="integration-actions"><button class="catalog-primary" id="validateAsaas">Validar novamente</button></div></div>'+
+ '<div class="panel"><p class="muted">A conta-pai nunca será usada como recebedora do próprio split. Sellers serão vinculados por subconta e walletId, com escrow configurado quando aplicável.</p></div></div>';
+ const b=document.querySelector('#validateAsaas');if(b)b.onclick=()=>showAdmin();
 }
