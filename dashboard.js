@@ -213,7 +213,8 @@ async function showAdmin(){
  }catch(e){validation={ok:false,error:'connection_error'}}
  const nextMap={
   activate_asaas_checkout:'Integração apta para ativação do checkout Asaas.',
-  use_legal_entity_parent_account:'A conta-pai precisa ser Pessoa Jurídica (CNPJ) para criar subcontas Asaas.',
+  activate_asaas_marketplace:'Checkout e marketplace Asaas aptos para ativação.',
+  checkout_ready_marketplace_requires_cnpj:'Checkout comum liberado. O carrinho multiempresa com split exige conta-pai empresarial/CNPJ.',
   complete_asaas_account_approval:'A conta Asaas ainda precisa concluir a aprovação cadastral.',
   confirm_marketplace_subaccount_access:'A API está válida, mas o acesso de marketplace/subcontas precisa ser confirmado.',
   review_credentials:'Revise as credenciais/configuração Asaas.'
@@ -224,6 +225,8 @@ async function showAdmin(){
  '<div class="integration-grid">'+
  '<div><span>API Key</span><strong>'+(validation?.api_key_present===false?'Ausente':validation?.ok?'Validada':'Configurada')+'</strong></div>'+
  '<div><span>Webhook Token</span><strong>'+(validation?.webhook_token_present===false?'Ausente':'Configurado')+'</strong></div>'+
+ '<div><span>Checkout Asaas</span><strong>'+esc(validation?.checkout_activation_status||validation?.activation_status||'—')+'</strong></div>'+
+ '<div><span>Marketplace / split</span><strong>'+esc(validation?.marketplace_activation_status||'—')+'</strong></div>'+
  '<div><span>Conta Asaas</span><strong>'+esc(validation?.account_general_status||'—')+'</strong></div>'+
  '<div><span>Tipo da conta-pai</span><strong>'+esc(validation?.parent_person_type||'—')+'</strong></div>'+
  '<div><span>Wallet da conta-pai</span><strong>'+(validation?.parent_wallet_detected?'Identificada':'—')+'</strong></div>'+
