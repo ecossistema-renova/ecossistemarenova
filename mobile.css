@@ -1,0 +1,18 @@
+/* OYAG Mobile: apresentação independente */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+.topbar{height:70px;padding:0 14px}
+.topbar nav,.brand small,.header-actions .ghost{display:none}
+.header-actions .button{padding:10px 12px;font-size:.76rem}
+.hero{padding:44px 18px 70px;display:grid;grid-template-columns:1fr;gap:36px;min-height:auto}
+.hero h1{font-size:2.65rem}
+.hero-actions{display:grid}
+.hero-panel{padding:12px;max-width:none}
+.orbit{height:260px}
+.numbers{margin:0;border-radius:0;grid-template-columns:1fr;padding:15px}
+.numbers div{border-right:0;border-bottom:1px solid var(--line);justify-content:flex-start}
+.section{padding:65px 18px}
+.cards,.steps,.split{grid-template-columns:1fr}
+.split{gap:35px}
+.cta{padding:65px 18px}
+footer{display:grid}
+footer p{text-align:left}
