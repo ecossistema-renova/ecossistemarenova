@@ -7,25 +7,24 @@
 .cards{grid-template-columns:repeat(2,1fr)}
 .split{grid-template-columns:1fr}
 .steps{grid-template-columns:1fr}
-}@media(max-width:650px) and (hover:none) and (pointer:coarse){
-.topbar{height:70px;padding:0 14px}
-.brand small,.header-actions .ghost{display:none}
-.header-actions .button{padding:10px 12px;font-size:.76rem}
-.hero{padding:44px 18px 70px;grid-template-columns:1fr;gap:36px;min-height:auto}
-.hero h1{font-size:2.65rem}
-.hero-actions{display:grid}
-.hero-panel{padding:12px}
-.orbit{height:260px}
-.numbers{margin:0;border-radius:0;grid-template-columns:1fr;padding:15px}
-.numbers div{border-right:0;border-bottom:1px solid var(--line);justify-content:flex-start}
-.section{padding:65px 18px}
-.cards{grid-template-columns:1fr}
-.steps{grid-template-columns:1fr}
-.split{gap:35px}
-.cta{padding:65px 18px}
-footer{display:grid}
-footer p{text-align:left}
-}
+}body.oyag-real-mobile .topbar{height:70px;padding:0 14px}
+body.oyag-real-mobile .brand small,
+body.oyag-real-mobile .header-actions .ghost{display:none}
+body.oyag-real-mobile .header-actions .button{padding:10px 12px;font-size:.76rem}
+body.oyag-real-mobile .hero{padding:44px 18px 70px;grid-template-columns:1fr;gap:36px;min-height:auto}
+body.oyag-real-mobile .hero h1{font-size:2.65rem}
+body.oyag-real-mobile .hero-actions{display:grid}
+body.oyag-real-mobile .hero-panel{padding:12px}
+body.oyag-real-mobile .orbit{height:260px}
+body.oyag-real-mobile .numbers{margin:0;border-radius:0;grid-template-columns:1fr;padding:15px}
+body.oyag-real-mobile .numbers div{border-right:0;border-bottom:1px solid var(--line);justify-content:flex-start}
+body.oyag-real-mobile .section{padding:65px 18px}
+body.oyag-real-mobile .cards{grid-template-columns:1fr}
+body.oyag-real-mobile .steps{grid-template-columns:1fr}
+body.oyag-real-mobile .split{gap:35px}
+body.oyag-real-mobile .cta{padding:65px 18px}
+body.oyag-real-mobile footer{display:grid}
+body.oyag-real-mobile footer p{text-align:left}
 
 /* Movimento leve e acessível */
 @keyframes oyagRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
