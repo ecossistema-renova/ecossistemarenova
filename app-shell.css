@@ -18,3 +18,132 @@
 .catalog-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.catalog-toolbar h2{margin:3px 0}.catalog-primary{border:0;border-radius:11px;padding:12px 16px;background:var(--cyan);color:var(--navy);font-weight:900;cursor:pointer}.catalog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}.catalog-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}.catalog-card img,.catalog-image{width:100%;height:150px;object-fit:cover}.catalog-image{display:grid;place-items:center;background:linear-gradient(135deg,var(--navy),#0b5066);color:var(--gold);font-size:1.7rem;font-weight:950}.catalog-body{padding:16px;display:grid;gap:8px}.catalog-body h3,.catalog-body p{margin:0}.catalog-body p{color:var(--muted);font-size:.8rem;line-height:1.4}.catalog-body strong{font-size:1.2rem}.catalog-body small{color:var(--muted)}.catalog-meta{display:flex;justify-content:space-between;gap:8px;font-size:.7rem;text-transform:uppercase}.catalog-meta b{padding:4px 7px;border-radius:999px;background:#e8eef2}.status-published{color:#08786e!important;background:#dff8f3!important}.status-paused{color:#8b5e00!important;background:#fff1c9!important}.catalog-actions{display:flex;gap:8px;margin-top:5px}.catalog-actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer}@media(max-width:650px){.catalog-toolbar{align-items:stretch;flex-direction:column}.catalog-primary{width:100%}}
 
 .admin-integrations{display:grid;gap:14px}.integration-card{margin-top:0}.integration-status{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:.7rem;font-weight:900;text-transform:uppercase}.integration-status.ready{background:#dcf8ef;color:#08745e}.integration-status.attention{background:#fff0d7;color:#8b5b00}.integration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}.integration-grid>div{border:1px solid var(--line);border-radius:12px;padding:13px;background:#f8fbfc}.integration-grid span{display:block;color:var(--muted);font-size:.68rem;margin-bottom:4px}.integration-grid strong{font-size:.82rem}.integration-message{padding:13px 14px;border-radius:12px;font-size:.8rem;line-height:1.5}.integration-message.ok{background:#e7f9f4;color:#08745e}.integration-message.warn{background:#fff4dc;color:#7a5500}.integration-actions{margin-top:14px;display:flex;justify-content:flex-end}@media(max-width:760px){.integration-grid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.integration-grid{grid-template-columns:1fr}}
+
+
+/* ===== OYAG Responsive Review 2026-09-18 ===== */
+html,body{max-width:100%;overflow-x:hidden}
+.shell,.workspace,#content,.panel,.metric,.dashboard-columns,.admin-integrations{min-width:0}
+.mobile-menu-toggle,.mobile-menu-backdrop{display:none}
+.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-wrap table{width:100%}
+.panel,.metric{overflow-wrap:anywhere}
+.catalog-grid{grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr))}
+
+@media(max-width:800px){
+  body{min-width:0}
+  .shell{display:block;min-height:100dvh;width:100%;overflow-x:hidden}
+  aside{
+    position:fixed;
+    inset:0 auto 0 0;
+    z-index:1001;
+    width:min(84vw,300px);
+    height:100dvh;
+    padding:18px 14px;
+    overflow-y:auto;
+    transform:translateX(-104%);
+    transition:transform .22s ease;
+    box-shadow:18px 0 50px #0004;
+  }
+  .shell.mobile-menu-open aside{transform:translateX(0)}
+  aside nav{display:grid;overflow:visible;gap:6px}
+  aside nav button{white-space:normal;width:100%}
+  .company-card{margin-top:14px}
+  .logout{margin-top:8px!important}
+  .mobile-menu-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    border:0;
+    padding:0;
+    background:#061b2b99;
+  }
+  .shell.mobile-menu-open .mobile-menu-backdrop{display:block}
+  .workspace{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    padding:14px 12px 32px;
+    overflow-x:hidden;
+  }
+  .workspace>header{
+    position:sticky;
+    top:0;
+    z-index:30;
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    align-items:center;
+    gap:10px;
+    margin:-14px -12px 16px;
+    padding:12px;
+    background:rgba(244,248,251,.96);
+    border-bottom:1px solid var(--line);
+    backdrop-filter:blur(10px);
+  }
+  .mobile-menu-toggle{
+    display:inline-grid;
+    place-items:center;
+    width:42px;
+    height:42px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:#fff;
+    color:var(--navy);
+    font-size:1.25rem;
+    font-weight:900;
+  }
+  .workspace-title{min-width:0}
+  .workspace-title .eyebrow{margin:0}
+  .workspace-title h1{margin:2px 0 0;font-size:1.18rem;line-height:1.1}
+  .user{
+    max-width:40vw;
+    min-width:0;
+    overflow:hidden;
+    text-align:right;
+  }
+  .user b,.user span{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .metric,.panel{padding:15px;border-radius:13px}
+  .metric strong{font-size:1.5rem}
+  .dashboard-columns{grid-template-columns:minmax(0,1fr)}
+  .panel-heading{align-items:flex-start;gap:8px;flex-wrap:wrap}
+  .integration-grid{grid-template-columns:minmax(0,1fr)}
+  .catalog-toolbar{align-items:stretch;flex-direction:column}
+  .catalog-primary{width:100%}
+  .catalog-grid{grid-template-columns:minmax(0,1fr)}
+  .project-actions{justify-content:stretch;flex-wrap:wrap}
+  .project-actions button{flex:1 1 140px}
+  .kanban{
+    width:100%;
+    grid-template-columns:repeat(6,minmax(250px,82vw));
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+  }
+  .table-wrap{width:100%;border-radius:10px}
+  .table-wrap table{min-width:680px}
+  th,td{padding:10px 9px;font-size:.76rem}
+  .perf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .activity-row,.operation-row{align-items:flex-start}
+}
+
+@media(max-width:480px){
+  .workspace{padding-left:10px;padding-right:10px}
+  .workspace>header{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .perf-grid{grid-template-columns:minmax(0,1fr)}
+  .metric,.panel{padding:14px}
+  .metric strong{font-size:1.35rem}
+  .user{max-width:34vw;font-size:.7rem}
+  .kanban{grid-template-columns:repeat(6,minmax(245px,88vw))}
+  .auth-card{width:min(94vw,430px);padding:24px 18px}
+}
+
+@media(min-width:801px){
+  .shell{grid-template-columns:255px minmax(0,1fr)}
+  aside{position:sticky;top:0;height:100vh;overflow-y:auto}
+  .workspace{max-width:100%;overflow-x:hidden}
+}
