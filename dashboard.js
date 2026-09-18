@@ -37,10 +37,44 @@ async function createUserProject(){
 document.querySelector('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-user-project]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');showUserProject(b.dataset.userProject,b.textContent)});
 async function showUserProject(id,name){
  title.textContent=name;C.innerHTML='<div class="loading">Carregando projeto…</div>';
- const {data:tasks,error}=await sb.from('oyag_user_project_tasks').select('id,title,description,status,priority,blocked_reason,position').eq('project_id',id).order('position');
+ const {data:tasks,error}=await sb.from('oyag_user_project_tasks').select('id,title,description,status,priority,blocked_reason,position,due_date').eq('project_id',id).order('position');
  if(error){C.innerHTML='<div class="panel"><h2>'+esc(name)+'</h2><p>'+esc(error.message)+'</p></div>';return}
  const statuses=[['backlog','Backlog'],['todo','A Fazer'],['in_progress','Em andamento'],['blocked','Bloqueado'],['review','Revisão'],['done','Concluído']];
  const total=tasks.length,done=tasks.filter(t=>t.status==='done').length,pct=total?Math.round(done*100/total):0;
- C.innerHTML='<div class="project-head">'+cards([['Progresso',pct+'%','conclusão geral'],['Concluídas',done,total+' tarefas'],['Em andamento',tasks.filter(t=>t.status==='in_progress').length,'execução atual'],['Bloqueadas',tasks.filter(t=>t.status==='blocked').length,'dependências']])+'<div class="progress"><i style="width:'+pct+'%"></i></div></div><div class="kanban">'+statuses.map(([key,label])=>'<section class="kanban-col"><header><b>'+label+'</b><span>'+tasks.filter(t=>t.status===key).length+'</span></header><div>'+tasks.filter(t=>t.status===key).map(t=>'<article class="task priority-'+esc(t.priority)+'"><div class="task-top"><span>MEU PROJETO</span><b>'+esc(t.priority)+'</b></div><h3>'+esc(t.title)+'</h3>'+(t.description?'<p>'+esc(t.description)+'</p>':'')+(t.blocked_reason?'<small>⚠ '+esc(t.blocked_reason)+'</small>':'')+'</article>').join('')+'</div></section>').join('')+'</div>';
+ C.innerHTML='<div class="project-actions"><button class="primary" id="newTask">+ Nova tarefa</button><button id="archiveProject">Arquivar projeto</button></div><div class="project-head">'+cards([['Progresso',pct+'%','conclusão geral'],['Concluídas',done,total+' tarefas'],['Em andamento',tasks.filter(t=>t.status==='in_progress').length,'execução atual'],['Bloqueadas',tasks.filter(t=>t.status==='blocked').length,'dependências']])+'<div class="progress"><i style="width:'+pct+'%"></i></div></div><div class="kanban">'+statuses.map(([key,label])=>'<section class="kanban-col" data-status="'+key+'"><header><b>'+label+'</b><span>'+tasks.filter(t=>t.status===key).length+'</span></header><div>'+tasks.filter(t=>t.status===key).map(t=>'<article class="task priority-'+esc(t.priority)+'" draggable="true" data-task="'+t.id+'"><div class="task-top"><span>MEU PROJETO</span><b>'+esc(t.priority)+'</b></div><h3>'+esc(t.title)+'</h3>'+(t.description?'<p>'+esc(t.description)+'</p>':'')+(t.due_date?'<small>Prazo: '+esc(t.due_date)+'</small>':'')+(t.blocked_reason?'<small>⚠ '+esc(t.blocked_reason)+'</small>':'')+'<div class="task-actions"><button data-edit="'+t.id+'">Editar</button><button data-delete="'+t.id+'">Excluir</button></div></article>').join('')+'</div></section>').join('')+'</div>';
+ document.querySelector('#newTask').onclick=()=>createUserTask(id,name);
+ document.querySelector('#archiveProject').onclick=()=>archiveUserProject(id,name);
+ C.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editUserTask(tasks.find(t=>t.id===b.dataset.edit),id,name));
+ C.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteUserTask(b.dataset.delete,id,name));
+ C.querySelectorAll('.task').forEach(card=>card.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',card.dataset.task)));
+ C.querySelectorAll('.kanban-col').forEach(col=>{col.addEventListener('dragover',e=>e.preventDefault());col.addEventListener('drop',async e=>{e.preventDefault();const taskId=e.dataTransfer.getData('text/plain');const {error}=await sb.rpc('oyag_move_user_task',{p_task_id:taskId,p_status:col.dataset.status});if(error)alert(error.message);else showUserProject(id,name)})});
+}
+async function createUserTask(projectId,projectName){
+ const title=prompt('Título da tarefa:');if(!title||!title.trim())return;
+ const description=prompt('Descrição (opcional):')||null;
+ const priority=(prompt('Prioridade: low, medium, high ou critical','medium')||'medium').toLowerCase();
+ const due=prompt('Prazo opcional (AAAA-MM-DD):')||null;
+ const {error}=await sb.rpc('oyag_create_user_task',{p_project_id:projectId,p_title:title.trim(),p_description:description,p_priority:priority,p_due_date:due});
+ if(error)alert('Erro ao criar tarefa: '+error.message);else showUserProject(projectId,projectName);
+}
+async function editUserTask(task,projectId,projectName){
+ const title=prompt('Título:',task.title);if(!title||!title.trim())return;
+ const description=prompt('Descrição:',task.description||'')||null;
+ const priority=(prompt('Prioridade: low, medium, high ou critical',task.priority)||task.priority).toLowerCase();
+ const due=prompt('Prazo (AAAA-MM-DD):',task.due_date||'')||null;
+ const blocked=prompt('Motivo do bloqueio (opcional):',task.blocked_reason||'')||null;
+ const {error}=await sb.rpc('oyag_update_user_task',{p_task_id:task.id,p_title:title.trim(),p_description:description,p_priority:priority,p_due_date:due,p_blocked_reason:blocked});
+ if(error)alert('Erro ao editar: '+error.message);else showUserProject(projectId,projectName);
+}
+async function deleteUserTask(taskId,projectId,projectName){
+ if(!confirm('Excluir esta tarefa?'))return;
+ const {error}=await sb.rpc('oyag_delete_user_task',{p_task_id:taskId});
+ if(error)alert('Erro ao excluir: '+error.message);else showUserProject(projectId,projectName);
+}
+async function archiveUserProject(projectId,projectName){
+ if(!confirm('Arquivar o projeto "'+projectName+'"? As informações permanecerão armazenadas.'))return;
+ const {error}=await sb.rpc('oyag_archive_user_project',{p_project_id:projectId});
+ if(error){alert('Erro ao arquivar: '+error.message);return}
+ await loadUserProjects();show('overview');
 }
 function notice(){return '<div class="panel"><h2>Ambiente interno conectado</h2><p>Este painel consulta o Supabase oficial respeitando RLS. Valores do ledger são saldos internos e não representam segregação financeira no Mercado Pago.</p></div>'}init();
