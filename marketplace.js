@@ -141,6 +141,11 @@ leadForm?.addEventListener('submit',async e=>{
    }));
   }
 
+  if(data.tracking_token){
+   sessionStorage.setItem('oyag_tracking_'+checkoutId,data.tracking_token);
+   localStorage.setItem('oyag_tracking_'+checkoutId,data.tracking_token);
+  }
+
   sessionStorage.setItem('oyag_last_lead',JSON.stringify({
    lead_id:data.lead_id,
    email,
