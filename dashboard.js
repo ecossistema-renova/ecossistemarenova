@@ -103,7 +103,7 @@ function renderDomain(v,data){
 function domainTable(h,heads,rows){return '<div class="panel"><h2>'+esc(h)+'</h2><div class="table-wrap"><table><thead><tr>'+heads.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div></div>'}
 function formatDate(v){if(!v)return '—';try{return new Intl.DateTimeFormat('pt-BR').format(new Date(v))}catch{return '—'}}
 function formatMoney(cents,currency='BRL'){try{return new Intl.NumberFormat('pt-BR',{style:'currency',currency:currency||'BRL'}).format(Number(cents||0)/100)}catch{return '—'}}
-function notice(){return '<div class="panel"><h2>Ambiente protegido</h2><p>Ambiente protegido e preparado para centralizar a gestão do seu negócio com segurança, organização e controle.</p></div>'}init()async function overview(){
+function notice(){return '<div class="panel"><h2>Ambiente protegido</h2><p>Ambiente protegido e preparado para centralizar a gestão do seu negócio com segurança, organização e controle.</p></div>'}async function overview(){
  const [o,u,a,alerts,projects,tasks,ledger]=await Promise.all([
   sb.from('organizations').select('id,name,status').limit(100),
   sb.from('oyag_units').select('id,name,status,health_state').limit(100),
@@ -225,4 +225,6 @@ function renderDomain(v,data){
 function domainTable(h,heads,rows){return '<div class="panel"><h2>'+esc(h)+'</h2><div class="table-wrap"><table><thead><tr>'+heads.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div></div>'}
 function formatDate(v){if(!v)return '—';try{return new Intl.DateTimeFormat('pt-BR').format(new Date(v))}catch{return '—'}}
 function formatMoney(cents,currency='BRL'){try{return new Intl.NumberFormat('pt-BR',{style:'currency',currency:currency||'BRL'}).format(Number(cents||0)/100)}catch{return '—'}}
-function notice(){return '<div class="panel"><h2>Ambiente protegido</h2><p>Ambiente protegido e preparado para centralizar a gestão do seu negócio com segurança, organização e controle.</p></div>'}init();
+function notice(){return '<div class="panel"><h2>Ambiente protegido</h2><p>Ambiente protegido e preparado para centralizar a gestão do seu negócio com segurança, organização e controle.</p></div>'}
+window.addEventListener('error',()=>{if(C&&/Carregando|Consultando/.test(C.textContent))C.innerHTML=statePanel('Não foi possível iniciar o painel','Recarregue a página. Se continuar, o erro será tratado na homologação.')});
+init().catch(err=>{console.error('OYAG_INIT',err);C.innerHTML=statePanel('Não foi possível iniciar o painel','O ambiente encontrou uma falha de inicialização. Tente novamente.')});
