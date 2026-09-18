@@ -1,9 +1,4 @@
 const cfg=window.OYAG_CONFIG;
-const legacySessionKey='sb-'+new URL(cfg.supabaseUrl).hostname.split('.')[0]+'-auth-token';
-if(!localStorage.getItem(legacySessionKey)&&sessionStorage.getItem(legacySessionKey)){
-  localStorage.setItem(legacySessionKey,sessionStorage.getItem(legacySessionKey));
-  sessionStorage.removeItem(legacySessionKey);
-}
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
 });
@@ -16,10 +11,9 @@ const paymentSelector=document.querySelector('#paymentSelector');
 const paymentProviderLabel=document.querySelector('#paymentProviderLabel');
 const buyerDocumentInput=document.querySelector('#buyerDocument');
 const buyerDocumentError=document.querySelector('#buyerDocumentError');
-let selectedMethod=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
-let session,checkout,orders=[],items=[];
+let session=null,guestToken=null,checkout=null,orders=[],items=[];
 
 function onlyDigits(v){return String(v||'').replace(/\D/g,'')}
 function normalizeDocument(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)}
@@ -61,9 +55,7 @@ function getBuyerIdentification(showError=true){
  const isCNPJ=/^[A-Z0-9]{12}\d{2}$/.test(raw);
  const type=isCPF?'CPF':isCNPJ?'CNPJ':null;
  const valid=type==='CPF'?validCPF(raw):type==='CNPJ'?validCNPJ(raw):false;
- if(showError&&buyerDocumentError){
-  buyerDocumentError.textContent=valid?'':'Informe um CPF ou CNPJ válido para continuar.';
- }
+ if(showError&&buyerDocumentError)buyerDocumentError.textContent=valid?'':'Informe um CPF ou CNPJ válido para continuar.';
  return valid?{type,number:raw}:null;
 }
 if(buyerDocumentInput){
@@ -73,24 +65,13 @@ if(buyerDocumentInput){
  });
 }
 
-function loginRedirect(){
- const next='./checkout.html?id='+encodeURIComponent(id||'');
- location.replace('./login.html?next='+encodeURIComponent(next));
-}
-function navigateToProviderCheckout(url){
- const target=String(url||'').trim();
- if(!target)return false;
+function getStoredGuestToken(){
+ if(!id)return null;
  try{
-  if(window.top&&window.top!==window.self){
-   window.top.location.href=target;
-  }else{
-   window.location.href=target;
-  }
-  return true;
- }catch(e){
-  const w=window.open(target,'_blank','noopener,noreferrer');
-  return !!w;
- }
+  const raw=sessionStorage.getItem('oyag_guest_checkout_'+id);
+  const data=raw?JSON.parse(raw):null;
+  return String(data?.guest_token||'').trim()||null;
+ }catch{return null}
 }
 
 function renderSummary(){
@@ -100,211 +81,93 @@ function renderSummary(){
  orders.map(o=>'<div class="seller-block"><div class="seller-name">'+esc(o.seller_name_snapshot||'Empresa OYAG')+'</div>'+
  (byOrder.get(o.id)||[]).map(i=>'<div class="order-line"><div><b>'+esc(i.name_snapshot)+'</b><small>'+esc(i.quantity)+' × '+esc(money(i.unit_price_cents,i.currency))+'</small></div><strong>'+esc(money(i.line_total_cents,i.currency))+'</strong></div>').join('')+
  '<div class="totals"><div><span>Subtotal</span><b>'+esc(money(o.subtotal_cents,o.currency))+'</b></div><div><span>Entrega</span><b>'+esc(money(o.shipping_cents,o.currency))+'</b></div><div class="grand"><span>Total</span><b>'+esc(money(o.total_cents,o.currency))+'</b></div></div></div>').join('')+
- '<div class="secure-note">O preço exibido aqui é o snapshot gravado no pedido. Alterações futuras no catálogo não mudam esta compra.</div>';
+ '<div class="secure-note">O preço exibido é o snapshot gravado no pedido. Alterações futuras no catálogo não mudam esta compra.</div>';
 }
 
-async function invokePayment(selectedPaymentMethod,formData){
- const identification=getBuyerIdentification(true);
- if(!identification)throw new Error('buyer_document_invalid');
- formData=formData&&typeof formData==='object'?structuredClone(formData):{};
- formData.payer=formData.payer&&typeof formData.payer==='object'?formData.payer:{};
- formData.payer.identification=identification;
- const attemptId=crypto.randomUUID();
- const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-process-payment',{
+async function loadAuthenticated(){
+ const c=await sb.from('oyag_checkouts').select('id,status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,created_at,completed_at,payment_provider,payment_provider_status').eq('id',id).maybeSingle();
+ if(c.error||!c.data)throw new Error('checkout_not_available');
+ checkout=c.data;
+ const o=await sb.from('oyag_orders').select('id,order_number,seller_organization_id,seller_name_snapshot,status,payment_status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,provider_order_id,provider_payment_id,metadata,created_at,paid_at').eq('checkout_id',id).order('order_number');
+ if(o.error||!o.data?.length)throw new Error('orders_not_available');
+ orders=o.data;
+ const it=await sb.from('oyag_order_items').select('order_id,name_snapshot,description_snapshot,image_url_snapshot,unit_price_cents,quantity,line_total_cents,currency').in('order_id',orders.map(x=>x.id));
+ if(it.error)throw new Error('items_not_available');
+ items=it.data||[];
+}
+
+async function loadGuest(){
+ const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-get-guest-checkout',{
   method:'POST',
-  headers:{
-   apikey:cfg.supabasePublishableKey,
-   authorization:'Bearer '+session.access_token,
-   'content-type':'application/json',
-   'x-idempotency-key':attemptId
-  },
-  body:JSON.stringify({
-   checkout_id:checkout.id,
-   attempt_id:attemptId,
-   selected_payment_method:selectedPaymentMethod,
-   form_data:formData
-  })
+  headers:{apikey:cfg.supabasePublishableKey,'content-type':'application/json'},
+  body:JSON.stringify({checkout_id:id,guest_token:guestToken})
  });
  const data=await r.json().catch(()=>({}));
- if(!r.ok||!data.ok)throw new Error(data?.provider?.message||data?.detail||data?.error||'Não foi possível processar o pagamento.');
- return data;
-}
-
-function renderPaymentAction(action){
- if(!paymentActionEl)return;
- if(!action){paymentActionEl.innerHTML='';return}
- if(action.type==='pix'){
-  paymentActionEl.innerHTML='<div class="payment-action"><h3>Pix gerado</h3><p>Escaneie o QR Code ou copie o código Pix. O pedido será atualizado automaticamente após a confirmação.</p>'+
-   (action.qr_code_base64?'<img class="pix-qr" src="data:image/png;base64,'+esc(action.qr_code_base64)+'" alt="QR Code Pix">':'')+
-   (action.qr_code?'<textarea class="copy-code" readonly>'+esc(action.qr_code)+'</textarea><button class="button secondary" type="button" id="copyPix">Copiar código Pix</button>':'')+
-   '<div class="payment-waiting">Aguardando confirmação do Mercado Pago.</div></div>';
-  const b=document.querySelector('#copyPix');if(b)b.onclick=async()=>{await navigator.clipboard.writeText(action.qr_code);b.textContent='Código copiado ✓'};
-  return;
- }
- if(action.type==='boleto'){
-  paymentActionEl.innerHTML='<div class="payment-action"><h3>Boleto gerado</h3><p>O pedido ficará aguardando pagamento até a confirmação bancária.</p>'+
-   (action.digitable_line?'<div class="boleto-line">'+esc(action.digitable_line)+'</div><button class="button secondary" type="button" id="copyBoleto">Copiar linha digitável</button>':'')+
-   (action.ticket_url?'<a class="button primary" href="'+esc(action.ticket_url)+'" target="_blank" rel="noopener">Abrir boleto</a>':'')+
-   '<div class="payment-waiting">A compensação pode levar algum tempo após o pagamento.</div></div>';
-  const b=document.querySelector('#copyBoleto');if(b)b.onclick=async()=>{await navigator.clipboard.writeText(action.digitable_line);b.textContent='Linha copiada ✓'};
- }
-}
-
-async function mountPaymentBrick(method){
- if(window.paymentBrickController?.unmount){
-  try{await window.paymentBrickController.unmount()}catch{}
- }
- const container=document.querySelector('#paymentBrick_container');
- container.innerHTML='';
- paymentActionEl.innerHTML='';
- selectedMethod=method;
- if(paymentProviderLabel)paymentProviderLabel.textContent='Mercado Pago';
- paymentSelector?.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.method===method));
-
- const methodLabels={pix:'Pix',card:'Cartão',boleto:'Boleto'};
- paymentMessage.className='payment-message';
- paymentMessage.textContent='Carregando '+methodLabels[method]+'…';
-
- const paymentMethods=method==='pix'
-  ? {bankTransfer:'all'}
-  : method==='boleto'
-    ? {ticket:'all'}
-    : {creditCard:'all',debitCard:'all',prepaidCard:'all'};
-
- const mp=new MercadoPago(cfg.mercadoPagoPublicKey,{locale:'pt-BR'});
- const bricksBuilder=mp.bricks();
-
- try{
-  window.paymentBrickController=await bricksBuilder.create('payment','paymentBrick_container',{
-   initialization:{amount:Number(checkout.total_cents)/100},
-   customization:{paymentMethods},
-   callbacks:{
-    onReady:()=>{
-     paymentMessage.textContent=method==='pix'
-      ? 'Pague por Pix. O QR Code será gerado após confirmar os dados.'
-      : method==='boleto'
-        ? 'Pague por boleto. Preencha os dados solicitados para gerar o boleto.'
-        : 'Pague com cartão de crédito ou débito.';
-    },
-    onSubmit:({selectedPaymentMethod,formData})=>new Promise(async(resolve,reject)=>{
-     paymentMessage.className='payment-message';
-     paymentMessage.textContent='Processando '+methodLabels[method]+'…';
-     try{
-      const result=await invokePayment(selectedPaymentMethod,formData);
-      renderPaymentAction(result.payment_action||null);
-      paymentMessage.className='payment-message ok';
-      if(result.payment_status==='approved')paymentMessage.textContent='Pagamento aprovado. Pedido atualizado.';
-      else if(result.payment_action?.type==='pix')paymentMessage.textContent='Pix gerado. Use o QR Code ou o código copia e cola.';
-      else if(result.payment_action?.type==='boleto')paymentMessage.textContent='Boleto gerado. Use a linha digitável ou abra o boleto.';
-      else paymentMessage.textContent='Pagamento enviado. Aguardando confirmação do Mercado Pago.';
-      resolve();
-     }catch(e){
-      const code=String(e?.message||'');
-      const friendly={
-       payment_method_missing:'Não foi possível identificar a forma de pagamento. Selecione novamente.',
-       payer_document_required:'Informe CPF ou CNPJ para continuar com este pagamento.',
-       buyer_document_invalid:'Informe um CPF ou CNPJ válido para continuar.',
-       boleto_address_required:'Preencha o endereço completo para gerar o boleto.',
-       unsupported_payment_method:'Esta forma de pagamento não está habilitada para esta conta Mercado Pago.',
-       mercado_pago_rejected:'O Mercado Pago não aceitou a solicitação. Revise os dados e tente novamente.'
-      };
-      paymentMessage.className='payment-message error';
-      paymentMessage.textContent=friendly[code]||code||'Não foi possível processar o pagamento.';
-      reject();
-     }
-    }),
-    onError:(error)=>{
-     console.error('OYAG_MP_BRICK',error);
-     paymentMessage.className='payment-message error';
-     paymentMessage.textContent='Este meio de pagamento não pôde ser carregado. Verifique se está habilitado na conta Mercado Pago.';
-    }
-   }
-  });
- }catch(error){
-  console.error('OYAG_MP_BRICK_CREATE',error);
-  paymentMessage.className='payment-message error';
-  paymentMessage.textContent='Não foi possível disponibilizar '+methodLabels[method]+' neste momento.';
- }
+ if(!r.ok||!data.ok)throw new Error(data?.error||'guest_checkout_not_available');
+ checkout=data.checkout;
+ orders=data.orders||[];
+ items=data.items||[];
+ if(!checkout||!orders.length)throw new Error('guest_checkout_not_available');
 }
 
 async function tryAsaasCheckout(method,paymentWindow=null){
-  const identification=getBuyerIdentification(true);
-  if(!identification)return false;
-  const attemptId=crypto.randomUUID();
-  const r=await fetch(cfg.supabaseUrl+'/functions/v1/asaas-create-checkout',{
-    method:'POST',
-    headers:{
-      apikey:cfg.supabasePublishableKey,
-      authorization:'Bearer '+session.access_token,
-      'content-type':'application/json',
-      'x-idempotency-key':attemptId
-    },
-    body:JSON.stringify({checkout_id:checkout.id,buyer_document:identification,payment_method:method})
-  });
-  const data=await r.json().catch(()=>({}));
-  if(r.ok&&data?.ok&&data?.checkout_url){
-    if(paymentProviderLabel)paymentProviderLabel.textContent='Asaas';
-    paymentMessage.className='payment-message ok';
-    paymentMessage.textContent='Abrindo o checkout seguro Asaas…';
-    const url=String(data.checkout_url);
-    if(paymentWindow && !paymentWindow.closed){
-      try{ paymentWindow.opener=null; }catch{}
-      paymentWindow.location.replace(url);
-    }else if(window.self===window.top){
-      location.assign(url);
-    }else{
-      paymentActionEl.innerHTML='<a class="button primary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir pagamento seguro no Asaas</a>';
-      paymentMessage.textContent='O checkout do Asaas não pode ser exibido dentro do iframe. Abra o pagamento seguro em uma nova aba.';
-    }
-    return true;
+ const identification=getBuyerIdentification(true);
+ if(!identification)return false;
+ const attemptId=crypto.randomUUID();
+ const headers={
+  apikey:cfg.supabasePublishableKey,
+  'content-type':'application/json',
+  'x-idempotency-key':attemptId
+ };
+ if(session?.access_token)headers.authorization='Bearer '+session.access_token;
+ const body={checkout_id:checkout.id,buyer_document:identification,payment_method:method};
+ if(guestToken)body.guest_token=guestToken;
+
+ const r=await fetch(cfg.supabaseUrl+'/functions/v1/asaas-create-checkout',{
+  method:'POST',headers,body:JSON.stringify(body)
+ });
+ const data=await r.json().catch(()=>({}));
+
+ if(r.ok&&data?.ok&&data?.checkout_url){
+  paymentProviderLabel.textContent='Asaas';
+  paymentMessage.className='payment-message ok';
+  paymentMessage.textContent='Abrindo o pagamento seguro Asaas…';
+  const url=String(data.checkout_url);
+  if(paymentWindow&&!paymentWindow.closed){
+   try{paymentWindow.opener=null}catch{}
+   paymentWindow.location.replace(url);
+  }else if(window.self===window.top){
+   location.assign(url);
+  }else{
+   paymentActionEl.innerHTML='<a class="button primary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir pagamento seguro no Asaas</a>';
+   paymentMessage.textContent='Abra o pagamento seguro do Asaas em uma nova aba.';
   }
-  if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active','asaas_checkout_not_ready','asaas_parent_account_missing'].includes(data?.error)){
-    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent='O checkout Asaas ainda não está liberado para esta conta.';
-    if(paymentSelector) paymentSelector.style.display='none';
-    const mpContainer=document.querySelector('#paymentBrick_container');
-    if(mpContainer) mpContainer.innerHTML='';
-    return true;
-  }
-  if(data?.error==='asaas_marketplace_not_ready'){
-    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent='Este carrinho possui mais de uma empresa. O checkout comum está disponível, mas o split multiempresa ainda aguarda liberação da conta-pai empresarial.';
-    if(paymentSelector) paymentSelector.style.display='none';
-    const mpContainer=document.querySelector('#paymentBrick_container');
-    if(mpContainer) mpContainer.innerHTML='';
-    return true;
-  }
-  if(data?.error==='asaas_card_minimum_amount'){
-    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent='O valor deste pedido não atende ao mínimo exigido para cartão. Use Pix ou ajuste o valor do pedido.';
-    return true;
-  }
-  if(data?.error==='asaas_checkout_rejected'){
-    const providerDescription=Array.isArray(data?.provider_errors)
-      ? data.provider_errors.map(x=>x?.description).filter(Boolean).join(' · ')
-      : '';
-    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent=providerDescription
-      ? 'O Asaas recusou a criação do checkout: '+providerDescription
-      : 'O Asaas recusou a criação do checkout. O erro foi registrado para diagnóstico.';
-    return true;
-  }
-  if(data?.error){
-    if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
-    paymentMessage.className='payment-message error';
-    paymentMessage.textContent='Não foi possível iniciar o pagamento Asaas: '+data.error;
-    return true;
-  }
-  return false;
+  return true;
+ }
+
+ if(paymentWindow&&!paymentWindow.closed)paymentWindow.close();
+ paymentMessage.className='payment-message error';
+
+ if(data?.error==='asaas_card_minimum_amount'){
+  paymentMessage.textContent='O valor deste pedido não atende ao mínimo exigido para cartão. Use Pix.';
+ }else if(data?.error==='asaas_checkout_rejected'){
+  const providerDescription=Array.isArray(data?.provider_errors)?data.provider_errors.map(x=>x?.description).filter(Boolean).join(' · '):'';
+  paymentMessage.textContent=providerDescription?'O Asaas recusou o checkout: '+providerDescription:'O Asaas recusou a criação do checkout.';
+ }else if(data?.error==='invalid_guest_token'||data?.error==='guest_token_required'){
+  paymentMessage.textContent='A sessão desta compra expirou. Volte à vitrine e inicie uma nova compra.';
+ }else{
+  paymentMessage.textContent='Não foi possível iniciar o pagamento no Asaas. Tente novamente.';
+ }
+ return true;
 }
 
 async function renderPayment(){
+ paymentProviderLabel.textContent='Asaas';
+ const boleto=paymentSelector?.querySelector('[data-method="boleto"]');
+ if(boleto)boleto.disabled=true;
+
  if(orders.length!==1){
-  paymentMessage.textContent='O processamento financeiro multiempresa será ativado após a conexão das contas vendedoras.';
+  paymentMessage.textContent='O carrinho multiempresa será liberado quando as contas vendedoras estiverem prontas para split.';
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
@@ -315,65 +178,51 @@ async function renderPayment(){
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
- // O checkout principal é Asaas. O Mercado Pago não é requisito para renderizar esta tela.
- const existingAction=order.metadata?.payment_action||null;
- if(existingAction&&order.payment_status==='processing'){
-  renderPaymentAction(existingAction);
-  paymentMessage.className='payment-message ok';
-  paymentMessage.textContent=existingAction.type==='pix'?'Pix aguardando pagamento.':'Boleto aguardando pagamento.';
-  paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
-  return;
- }
- paymentMessage.textContent='Informe CPF ou CNPJ e escolha a forma de pagamento.';
+
+ paymentMessage.textContent='Informe CPF ou CNPJ e escolha Pix ou Cartão.';
  paymentSelector?.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-method]');
   if(!b||b.disabled)return;
   const method=b.dataset.method;
-  if(!getBuyerIdentification(true)){
-   buyerDocumentInput?.focus();
-   return;
-  }
-  if(['pix','card'].includes(method)){
-   let paymentWindow=null;
-   if(window.self!==window.top){
-    paymentWindow=window.open('about:blank','oyag_asaas_checkout');
-    if(paymentWindow){
-     try{
-      paymentWindow.document.title='OYAG · Pagamento seguro';
-      paymentWindow.document.body.innerHTML='<div style="font-family:system-ui;padding:28px"><strong>OYAG Ecosystem</strong><p>Abrindo o pagamento seguro no Asaas…</p></div>';
-     }catch{}
-    }
+  if(!['pix','card'].includes(method))return;
+  if(!getBuyerIdentification(true)){buyerDocumentInput?.focus();return}
+
+  paymentSelector.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+  let paymentWindow=null;
+  if(window.self!==window.top){
+   paymentWindow=window.open('about:blank','oyag_asaas_checkout');
+   if(paymentWindow){
+    try{
+     paymentWindow.document.title='OYAG · Pagamento seguro';
+     paymentWindow.document.body.innerHTML='<div style="font-family:system-ui;padding:28px"><strong>OYAG Ecosystem</strong><p>Abrindo o pagamento seguro no Asaas…</p></div>';
+    }catch{}
    }
-   const asaasStarted=await tryAsaasCheckout(method,paymentWindow);
-   if(asaasStarted)return;
-   if(paymentWindow && !paymentWindow.closed) paymentWindow.close();
   }
-  if(method==='boleto'){
-   paymentMessage.className='payment-message error';
-   paymentMessage.textContent='Boleto Asaas será habilitado pelo fluxo de cobrança próprio. Ele não será enviado ao Mercado Pago.';
-   return;
-  }
-  paymentMessage.className='payment-message error';
-  paymentMessage.textContent='Forma de pagamento temporariamente indisponível.';
+  await tryAsaasCheckout(method,paymentWindow);
+  if(!location.href.includes('asaas'))paymentSelector.querySelectorAll('button').forEach(btn=>{btn.disabled=btn.dataset.method==='boleto'});
  });
 }
+
 async function init(){
  if(!id){statusEl.textContent='Pedido não informado.';return}
- const {data}=await sb.auth.getSession();
- session=data.session;
- if(!session){loginRedirect();return}
+ guestToken=getStoredGuestToken();
+ const auth=await sb.auth.getSession();
+ session=auth?.data?.session||null;
 
- const c=await sb.from('oyag_checkouts').select('id,status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,created_at').eq('id',id).maybeSingle();
- if(c.error||!c.data){statusEl.textContent='Este checkout não está disponível para sua conta.';return}
- checkout=c.data;
-
- const o=await sb.from('oyag_orders').select('id,order_number,seller_organization_id,seller_name_snapshot,status,payment_status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,provider_order_id,provider_payment_id,metadata,created_at').eq('checkout_id',id).order('order_number');
- if(o.error||!o.data?.length){statusEl.textContent='Não foi possível carregar os pedidos deste checkout.';return}
- orders=o.data;
-
- const it=await sb.from('oyag_order_items').select('order_id,name_snapshot,description_snapshot,image_url_snapshot,unit_price_cents,quantity,line_total_cents,currency').in('order_id',orders.map(x=>x.id));
- if(it.error){statusEl.textContent='Não foi possível carregar os itens do pedido.';return}
- items=it.data||[];
+ try{
+  if(guestToken)await loadGuest();
+  else if(session)await loadAuthenticated();
+  else{
+   statusEl.textContent='Esta sessão de compra não está disponível. Volte à vitrine e inicie uma nova compra.';
+   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
+   return;
+  }
+ }catch(e){
+  console.error('OYAG_CHECKOUT_LOAD',e);
+  statusEl.textContent='Não foi possível carregar este pedido. Volte à vitrine e tente novamente.';
+  paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
+  return;
+ }
 
  statusEl.textContent='Pedido #'+orders.map(x=>x.order_number).join(', #')+' · '+money(checkout.total_cents,checkout.currency);
  renderSummary();
