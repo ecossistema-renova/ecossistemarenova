@@ -235,7 +235,12 @@ async function tryAsaasCheckout(){
     return true;
   }
   if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active'].includes(data?.error)){
-    return false;
+    paymentMessage.className='payment-message error';
+    paymentMessage.textContent='O pagamento pelo Asaas ainda está sendo ativado. Nenhuma cobrança será enviada ao Mercado Pago.';
+    if(paymentSelector) paymentSelector.style.display='none';
+    const mpContainer=document.querySelector('#paymentBrick_container');
+    if(mpContainer) mpContainer.innerHTML='';
+    return true;
   }
   if(data?.error){
     paymentMessage.className='payment-message error';
