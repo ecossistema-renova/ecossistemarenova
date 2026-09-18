@@ -15,6 +15,7 @@ const id=new URLSearchParams(location.search).get('id');
 const statusEl=document.querySelector('#checkoutStatus');
 const summaryEl=document.querySelector('#orderSummary');
 const paymentMessage=document.querySelector('#paymentMessage');
+const paymentActionEl=document.querySelector('#paymentAction');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
 let session,checkout,orders=[],items=[];
@@ -34,7 +35,7 @@ function renderSummary(){
  '<div class="secure-note">O preço exibido aqui é o snapshot gravado no pedido. Alterações futuras no catálogo não mudam esta compra.</div>';
 }
 
-async function invokePayment(formData,additionalData){
+async function invokePayment(selectedPaymentMethod,formData){
  const attemptId=crypto.randomUUID();
  const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-process-payment',{
   method:'POST',
@@ -47,16 +48,33 @@ async function invokePayment(formData,additionalData){
   body:JSON.stringify({
    checkout_id:checkout.id,
    attempt_id:attemptId,
-   token:formData.token,
-   payment_method_id:formData.payment_method_id,
-   payment_type_id:additionalData?.paymentTypeId||formData.payment_type_id||'credit_card',
-   installments:Number(formData.installments||1),
-   identification:formData.payer?.identification||null
+   selected_payment_method:selectedPaymentMethod,
+   form_data:formData
   })
  });
  const data=await r.json().catch(()=>({}));
  if(!r.ok||!data.ok)throw new Error(data?.provider?.message||data?.detail||data?.error||'Não foi possível processar o pagamento.');
  return data;
+}
+
+function renderPaymentAction(action){
+ if(!paymentActionEl)return;
+ if(!action){paymentActionEl.innerHTML='';return}
+ if(action.type==='pix'){
+  paymentActionEl.innerHTML='<div class="payment-action"><h3>Pix gerado</h3><p>Escaneie o QR Code ou copie o código Pix. O pedido será atualizado automaticamente após a confirmação.</p>'+
+   (action.qr_code_base64?'<img class="pix-qr" src="data:image/png;base64,'+esc(action.qr_code_base64)+'" alt="QR Code Pix">':'')+
+   (action.qr_code?'<textarea class="copy-code" readonly>'+esc(action.qr_code)+'</textarea><button class="button secondary" type="button" id="copyPix">Copiar código Pix</button>':'')+
+   '<div class="payment-waiting">Aguardando confirmação do Mercado Pago.</div></div>';
+  const b=document.querySelector('#copyPix');if(b)b.onclick=async()=>{await navigator.clipboard.writeText(action.qr_code);b.textContent='Código copiado ✓'};
+  return;
+ }
+ if(action.type==='boleto'){
+  paymentActionEl.innerHTML='<div class="payment-action"><h3>Boleto gerado</h3><p>O pedido ficará aguardando pagamento até a confirmação bancária.</p>'+
+   (action.digitable_line?'<div class="boleto-line">'+esc(action.digitable_line)+'</div><button class="button secondary" type="button" id="copyBoleto">Copiar linha digitável</button>':'')+
+   (action.ticket_url?'<a class="button primary" href="'+esc(action.ticket_url)+'" target="_blank" rel="noopener">Abrir boleto</a>':'')+
+   '<div class="payment-waiting">A compensação pode levar algum tempo após o pagamento.</div></div>';
+  const b=document.querySelector('#copyBoleto');if(b)b.onclick=async()=>{await navigator.clipboard.writeText(action.digitable_line);b.textContent='Linha copiada ✓'};
+ }
 }
 
 async function renderPayment(){
@@ -75,22 +93,41 @@ async function renderPayment(){
   paymentMessage.textContent='Checkout temporariamente indisponível: credencial pública de pagamento não configurada.';
   return;
  }
- paymentMessage.textContent='Preencha os dados abaixo. O OYAG não recebe os dados brutos do cartão; a tokenização é realizada pelo Mercado Pago.';
- const mp=new MercadoPago(cfg.mercadoPagoPublicKey);
+ paymentMessage.innerHTML='<div class="payment-methods-note"><span>Pix</span><span>Cartão</span><span>Boleto</span></div>Escolha a forma de pagamento. Os dados sensíveis são tratados pelo Mercado Pago.';
+ const existingAction=order.metadata?.payment_action||null;
+ if(existingAction)renderPaymentAction(existingAction);
+ if(existingAction&&order.payment_status==='processing'){
+  paymentMessage.className='payment-message ok';
+  paymentMessage.textContent=existingAction.type==='pix'?'Pix aguardando pagamento.':'Boleto aguardando pagamento.';
+  return;
+ }
+ const mp=new MercadoPago(cfg.mercadoPagoPublicKey,{locale:'pt-BR'});
  const bricksBuilder=mp.bricks();
- await bricksBuilder.create('cardPayment','cardPaymentBrick_container',{
+ window.paymentBrickController=await bricksBuilder.create('payment','paymentBrick_container',{
   initialization:{amount:Number(checkout.total_cents)/100},
+  customization:{
+   paymentMethods:{
+    bankTransfer:'all',
+    ticket:'all',
+    creditCard:'all',
+    debitCard:'all',
+    prepaidCard:'all'
+   }
+  },
   callbacks:{
-   onReady:()=>{paymentMessage.textContent='Pagamento pronto para preenchimento.'},
-   onSubmit:(formData,additionalData)=>new Promise(async(resolve,reject)=>{
+   onReady:()=>{paymentMessage.innerHTML='<div class="payment-methods-note"><span>Pix</span><span>Cartão</span><span>Boleto</span></div>Escolha a opção desejada e conclua o pagamento.'},
+   onSubmit:({selectedPaymentMethod,formData})=>new Promise(async(resolve,reject)=>{
     paymentMessage.className='payment-message';
     paymentMessage.textContent='Processando pagamento…';
     try{
-     const result=await invokePayment(formData,additionalData);
+     const result=await invokePayment(selectedPaymentMethod,formData);
+     renderPaymentAction(result.payment_action||null);
      paymentMessage.className='payment-message ok';
-     paymentMessage.textContent=result.payment_status==='approved'?'Pagamento aprovado. Atualizando pedido…':'Pagamento enviado. Aguardando confirmação do Mercado Pago…';
+     if(result.payment_status==='approved')paymentMessage.textContent='Pagamento aprovado. Pedido atualizado.';
+     else if(result.payment_action?.type==='pix')paymentMessage.textContent='Pix gerado. Conclua o pagamento pelo QR Code ou código Pix.';
+     else if(result.payment_action?.type==='boleto')paymentMessage.textContent='Boleto gerado. Use a linha digitável ou abra o boleto.';
+     else paymentMessage.textContent='Pagamento enviado. Aguardando confirmação do Mercado Pago.';
      resolve();
-     setTimeout(()=>location.reload(),1200);
     }catch(e){
      paymentMessage.className='payment-message error';
      paymentMessage.textContent=e.message||'Não foi possível processar o pagamento.';
@@ -116,7 +153,7 @@ async function init(){
  if(c.error||!c.data){statusEl.textContent='Este checkout não está disponível para sua conta.';return}
  checkout=c.data;
 
- const o=await sb.from('oyag_orders').select('id,order_number,seller_organization_id,seller_name_snapshot,status,payment_status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,provider_order_id,provider_payment_id,created_at').eq('checkout_id',id).order('order_number');
+ const o=await sb.from('oyag_orders').select('id,order_number,seller_organization_id,seller_name_snapshot,status,payment_status,currency,subtotal_cents,discount_cents,shipping_cents,total_cents,provider_order_id,provider_payment_id,metadata,created_at').eq('checkout_id',id).order('order_number');
  if(o.error||!o.data?.length){statusEl.textContent='Não foi possível carregar os pedidos deste checkout.';return}
  orders=o.data;
 
