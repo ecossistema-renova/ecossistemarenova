@@ -22,17 +22,18 @@ const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',curre
 let session,checkout,orders=[],items=[];
 
 function onlyDigits(v){return String(v||'').replace(/\D/g,'')}
+function normalizeDocument(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)}
 function formatDocument(v){
- const d=onlyDigits(v).slice(0,14);
- if(d.length<=11){
+ const d=normalizeDocument(v);
+ if(/^\d{0,11}$/.test(d)){
   return d.replace(/(\d{3})(\d)/,'$1.$2')
           .replace(/(\d{3})(\d)/,'$1.$2')
           .replace(/(\d{3})(\d{1,2})$/,'$1-$2');
  }
- return d.replace(/(\d{2})(\d)/,'$1.$2')
-         .replace(/(\d{3})(\d)/,'$1.$2')
-         .replace(/(\d{3})(\d)/,'$1/$2')
-         .replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+ return d.replace(/([A-Z0-9]{2})([A-Z0-9])/,'$1.$2')
+         .replace(/([A-Z0-9]{3})([A-Z0-9])/,'$1.$2')
+         .replace(/([A-Z0-9]{3})([A-Z0-9])/,'$1/$2')
+         .replace(/([A-Z0-9]{4})(\d{1,2})$/,'$1-$2');
 }
 function validCPF(cpf){
  cpf=onlyDigits(cpf);
@@ -42,25 +43,28 @@ function validCPF(cpf){
  sum=0;for(let i=0;i<10;i++)sum+=Number(cpf[i])*(11-i);
  d=(sum*10)%11;if(d===10)d=0;return d===Number(cpf[10]);
 }
+function cnpjCharValue(ch){return ch.charCodeAt(0)-48}
 function validCNPJ(cnpj){
- cnpj=onlyDigits(cnpj);
- if(cnpj.length!==14||/^(\d)\1+$/.test(cnpj))return false;
+ cnpj=normalizeDocument(cnpj);
+ if(!/^[A-Z0-9]{12}\d{2}$/.test(cnpj)||/^(\d)\1+$/.test(cnpj))return false;
  const calc=(base,weights)=>{
-  const sum=base.split('').reduce((a,n,i)=>a+Number(n)*weights[i],0);
-  const r=sum%11;return r<2?0:11-r;
+  const sum=[...base].reduce((a,ch,i)=>a+cnpjCharValue(ch)*weights[i],0);
+  const r=sum%11;return r===0||r===1?0:11-r;
  };
  const d1=calc(cnpj.slice(0,12),[5,4,3,2,9,8,7,6,5,4,3,2]);
  const d2=calc(cnpj.slice(0,12)+d1,[6,5,4,3,2,9,8,7,6,5,4,3,2]);
  return d1===Number(cnpj[12])&&d2===Number(cnpj[13]);
 }
 function getBuyerIdentification(showError=true){
- const number=onlyDigits(buyerDocumentInput?.value);
- const type=number.length===11?'CPF':number.length===14?'CNPJ':null;
- const valid=type==='CPF'?validCPF(number):type==='CNPJ'?validCNPJ(number):false;
+ const raw=normalizeDocument(buyerDocumentInput?.value);
+ const isCPF=/^\d{11}$/.test(raw);
+ const isCNPJ=/^[A-Z0-9]{12}\d{2}$/.test(raw);
+ const type=isCPF?'CPF':isCNPJ?'CNPJ':null;
+ const valid=type==='CPF'?validCPF(raw):type==='CNPJ'?validCNPJ(raw):false;
  if(showError&&buyerDocumentError){
   buyerDocumentError.textContent=valid?'':'Informe um CPF ou CNPJ válido para continuar.';
  }
- return valid?{type,number}:null;
+ return valid?{type,number:raw}:null;
 }
 if(buyerDocumentInput){
  buyerDocumentInput.addEventListener('input',()=>{
