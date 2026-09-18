@@ -13,7 +13,7 @@ const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  C.innerHTML=cards([['Contas internas',balances.length,'ledger OYAG'],['Conciliações',recs.length,'ledger × PSP'],['Divergências',div.length,'exigem análise']])+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">CONCILIAÇÃO</p><h2>Ledger interno × provedor de pagamento</h2></div></div>'+
  (recs.length?domainTable('Movimentações conciliadas',['Status','Origem','Referência','Interno','Externo','Diferença'],recs.map(x=>[x.reconciliation_status,x.provider||x.source_system,x.provider_payment_id||x.source_reference,formatMoney(x.internal_amount_cents),formatMoney(x.external_amount_cents),formatMoney(x.difference_cents)])):statePanel('Nenhuma conciliação registrada','Quando movimentações reais forem recebidas do provedor, a conciliação aparecerá aqui.'))+'</div>'+
- '<div class="panel"><p class="muted">Os saldos exibidos são registros do ledger interno OYAG. Eles não representam conta segregada ou saldo independente no Mercado Pago.</p></div>';
+ '<div class="panel"><p class="muted">Os saldos exibidos são registros contábeis do ledger interno OYAG e não representam, isoladamente, o saldo disponível no provedor de pagamento.</p></div>';
 }
 
 async function overview(){
