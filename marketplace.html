@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Vitrine pública OYAG Ecosystem">
+  <title>Vitrine OYAG</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#102235;background:#f3f7fa}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 28px;background:#fff;border-bottom:1px solid #e2e8ef;position:sticky;top:0}
+    .brand{font-weight:900;font-size:20px}.brand small{display:block;font-size:11px;font-weight:600;color:#708094;margin-top:3px}
+    a{color:inherit}
+    main{width:min(1100px,calc(100% - 28px));margin:40px auto}
+    .eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#008c87}
+    h1{font-size:clamp(34px,6vw,62px);line-height:1.02;margin:8px 0 16px}
+    .lead{max-width:720px;color:#607084;font-size:18px;line-height:1.6}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px;margin-top:34px}
+    .card{background:#073d51;color:#fff;border-radius:20px;padding:26px;min-height:330px;display:flex;flex-direction:column;box-shadow:0 16px 45px rgba(16,34,53,.13)}
+    .tag{align-self:flex-start;background:#e7fff8;color:#00796f;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+    .card h2{font-size:26px;margin:22px 0 10px}
+    .card p{color:#d8ebf0;line-height:1.55}
+    .price{font-size:38px;font-weight:900;margin-top:auto;padding-top:24px}
+    .button{border:0;border-radius:12px;padding:15px 18px;font-weight:900;font-size:16px;cursor:pointer;background:#ffd34d;color:#172033;margin-top:18px;width:100%}
+    .button:disabled{opacity:.6;cursor:wait}
+    .status{margin-top:14px;min-height:24px;font-size:14px;color:#d8ebf0}
+    .back{display:inline-block;margin-top:28px;text-decoration:none;font-weight:800;color:#087f78}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">OYAG Ecosystem<small>Pessoas · Tecnologia · Resultados</small></div>
+  <a href="./">Página inicial</a>
+</header>
+
+<main>
+  <p class="eyebrow">Vitrine Pública OYAG</p>
+  <h1>Compre sem precisar fazer login.</h1>
+  <p class="lead">O checkout é público. Ao clicar em comprar, o pagamento abre diretamente no ambiente seguro do Asaas.</p>
+
+  <section class="grid">
+    <article class="card">
+      <span class="tag">Produto</span>
+      <h2>Produto OYAG R$ 5,00</h2>
+      <p>Produto de teste do fluxo produtivo de checkout do OYAG Ecosystem.</p>
+      <div class="price">R$ 5,00</div>
+      <button class="button" id="buyButton" type="button">Comprar agora</button>
+      <div class="status" id="status" aria-live="polite"></div>
+    </article>
+  </section>
+
+  <a class="back" href="./">← Voltar para o OYAG</a>
+</main>
+
+<script>
+  const SUPABASE_FUNCTIONS = "https://epbhiygonpkzlmbbsyqv.supabase.co/functions/v1";
+  const PRODUCT_ID = "4e8cad60-f41f-493c-8975-f648f618c81f";
+  const buyButton = document.getElementById("buyButton");
+  const statusNode = document.getElementById("status");
+
+  function getOrCreate(key) {
+    let value = sessionStorage.getItem(key);
+    if (!value) {
+      value = crypto.randomUUID();
+      sessionStorage.setItem(key, value);
+    }
+    return value;
+  }
+
+  async function postJson(url, body, headers = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {"content-type":"application/json", ...headers},
+      body: JSON.stringify(body)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || data.detail || "Não foi possível concluir a operação.");
+    }
+    return data;
+  }
+
+  buyButton.addEventListener("click", async () => {
+    buyButton.disabled = true;
+    statusNode.textContent = "Preparando seu pagamento...";
+
+    try {
+      const guestSessionId = getOrCreate("oyag_guest_session_id");
+      const guestToken = getOrCreate("oyag_guest_token");
+      const idempotencyKey = getOrCreate("oyag_checkout_idempotency");
+
+      const created = await postJson(
+        SUPABASE_FUNCTIONS + "/oyag-create-guest-checkout",
+        {
+          guest_session_id: guestSessionId,
+          guest_token: guestToken,
+          idempotency_key: idempotencyKey,
+          items: [{catalog_item_id: PRODUCT_ID, quantity: 1}]
+        },
+        {"x-idempotency-key": idempotencyKey}
+      );
+
+      const checkoutId = created?.checkout?.checkout_id;
+      if (!checkoutId) throw new Error("Checkout não retornou um identificador válido.");
+
+      statusNode.textContent = "Abrindo o pagamento seguro...";
+
+      const payment = await postJson(
+        SUPABASE_FUNCTIONS + "/asaas-create-checkout",
+        {
+          checkout_id: checkoutId,
+          payment_method: "pix",
+          guest_token: guestToken
+        }
+      );
+
+      if (!payment.checkout_url) throw new Error("O Asaas não retornou o link de pagamento.");
+
+      window.top.location.href = payment.checkout_url;
+    } catch (error) {
+      console.error(error);
+      statusNode.textContent = "Não foi possível abrir o pagamento. Tente novamente.";
+      buyButton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
