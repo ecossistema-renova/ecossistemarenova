@@ -150,6 +150,36 @@ async function mountPaymentBrick(method){
  }
 }
 
+async function tryAsaasCheckout(){
+  const attemptId=crypto.randomUUID();
+  const r=await fetch(cfg.supabaseUrl+'/functions/v1/asaas-create-checkout',{
+    method:'POST',
+    headers:{
+      apikey:cfg.supabasePublishableKey,
+      authorization:'Bearer '+session.access_token,
+      'content-type':'application/json',
+      'x-idempotency-key':attemptId
+    },
+    body:JSON.stringify({checkout_id:checkout.id})
+  });
+  const data=await r.json().catch(()=>({}));
+  if(r.ok&&data?.ok&&data?.checkout_url){
+    paymentMessage.className='payment-message ok';
+    paymentMessage.textContent='Abrindo o checkout seguro Asaas…';
+    location.assign(data.checkout_url);
+    return true;
+  }
+  if(['asaas_not_activated','asaas_credentials_required','asaas_parent_account_not_active'].includes(data?.error)){
+    return false;
+  }
+  if(data?.error){
+    paymentMessage.className='payment-message error';
+    paymentMessage.textContent='Não foi possível iniciar o pagamento Asaas: '+data.error;
+    return true;
+  }
+  return false;
+}
+
 async function renderPayment(){
  if(orders.length!==1){
   paymentMessage.textContent='O processamento financeiro multiempresa será ativado após a conexão das contas vendedoras.';
@@ -163,6 +193,9 @@ async function renderPayment(){
   paymentSelector?.querySelectorAll('button').forEach(b=>b.disabled=true);
   return;
  }
+ const asaasStarted=await tryAsaasCheckout();
+ if(asaasStarted)return;
+
  if(!cfg.mercadoPagoPublicKey){
   paymentMessage.className='payment-message error';
   paymentMessage.textContent='Checkout temporariamente indisponível.';
