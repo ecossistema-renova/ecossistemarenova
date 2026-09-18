@@ -33,7 +33,7 @@
       <div id="paymentMessage" class="payment-message">Aguardando o resumo do pedido…</div>
       <div class="buyer-identification">
         <label for="buyerDocument">CPF ou CNPJ do comprador</label>
-        <input id="buyerDocument" type="text" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00">
+        <input id="buyerDocument" type="text" inputmode="text" autocomplete="off" maxlength="18" autocapitalize="characters" placeholder="000.000.000-00 ou 00.000.000/0000-00">
         <small>Use CPF para pessoa física ou CNPJ para empresa. O documento é enviado somente ao processador de pagamento durante a cobrança.</small>
         <div id="buyerDocumentError" class="field-error" aria-live="polite"></div>
       </div>
@@ -41,6 +41,6 @@
     </section>
   </div>
 </main>
-<script src="./checkout.js?v=identity08"></script>
+<script src="./checkout.js?v=identity09"></script>
 </body>
 </html>
