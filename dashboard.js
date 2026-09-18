@@ -33,14 +33,88 @@ async function overview(){
  '<div class="dashboard-columns"><div class="panel"><div class="panel-heading"><div><p class="eyebrow">ATIVIDADE CENTRAL</p><h2>Pontos recentes</h2></div></div>'+(als.length?als.map(x=>'<div class="activity-row"><b>'+esc(x.reason||'Alerta operacional')+'</b><span>'+esc(x.severity||'atenção')+'</span></div>').join(''):statePanel('Nenhuma atenção crítica agora','Os alertas operacionais aparecerão aqui quando houver necessidade de acompanhamento.'))+'</div>'+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">OPERAÇÃO</p><h2>Atenção agora</h2></div></div><div class="operation-stack"><div class="operation-row"><span>Tarefas abertas</span><strong>'+open.length+'</strong></div><div class="operation-row"><span>Tarefas atrasadas</span><strong>'+overdue.length+'</strong></div><div class="operation-row"><span>Tarefas bloqueadas</span><strong>'+blocked.length+'</strong></div><div class="operation-row"><span>Alertas abertos</span><strong>'+als.length+'</strong></div></div></div></div>'+notice()
 }
+async function showOrders(){
+ if(!['owner','platform_admin'].includes(role)){
+  C.innerHTML=statePanel('Acesso restrito','Pedidos e entregas estão disponíveis para perfis administrativos nesta etapa.');
+  return;
+ }
+ C.innerHTML='<div class="loading">Carregando pedidos e entregas…</div>';
+ const {data,error}=await sb.rpc('oyag_admin_orders_overview',{p_limit:150});
+ if(error){C.innerHTML=statePanel('Não foi possível carregar os pedidos',error.message);return}
+ const rows=Array.isArray(data)?data:[];
+ const counts={
+  paid:rows.filter(x=>x.payment_status==='approved').length,
+  preparing:rows.filter(x=>x.shipment_status==='preparing'||x.status==='preparing').length,
+  transit:rows.filter(x=>['posted','in_transit','out_for_delivery'].includes(x.shipment_status)).length,
+  delivered:rows.filter(x=>x.shipment_status==='delivered'||x.status==='delivered').length
+ };
+ C.innerHTML=cards([
+  ['Pagos',counts.paid,'pedidos confirmados'],
+  ['Em preparação',counts.preparing,'aguardando postagem'],
+  ['Em transporte',counts.transit,'postados / em trânsito'],
+  ['Entregues',counts.delivered,'concluídos']
+ ])+
+ '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">CRM DE PEDIDOS</p><h2>Pedidos & Entregas</h2></div></div>'+
+ '<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Entrega</th><th>Rastreamento</th><th>Ação</th></tr></thead><tbody>'+
+ (rows.length?rows.map(x=>'<tr>'+
+  '<td><strong>#'+esc(x.order_number)+'</strong><br><small>'+esc(formatDate(x.created_at))+'</small></td>'+
+  '<td><strong>'+esc(x.customer_name||'—')+'</strong><br><small>'+esc(x.customer_email||'')+(x.customer_whatsapp?' · '+esc(x.customer_whatsapp):'')+'</small></td>'+
+  '<td>'+esc(x.items_summary||'—')+'</td>'+
+  '<td>'+esc(x.payment_status==='approved'?'Pago':x.payment_status||'—')+'<br><small>'+esc(formatMoney(x.total_cents,x.currency))+'</small></td>'+
+  '<td>'+esc(x.shipment_status?shipmentLabel(x.shipment_status):'Ainda não iniciado')+'</td>'+
+  '<td>'+esc(x.carrier_name||'—')+(x.tracking_code?'<br><small>'+esc(x.tracking_code)+'</small>':'')+'</td>'+
+  '<td><button class="catalog-primary" data-ship-order="'+esc(x.id)+'">Atualizar entrega</button></td>'+
+ '</tr>').join(''):'<tr><td colspan="7">Nenhum pedido encontrado.</td></tr>')+
+ '</tbody></table></div></div>';
+ C.querySelectorAll('[data-ship-order]').forEach(b=>b.onclick=()=>updateShipment(rows.find(x=>x.id===b.dataset.shipOrder)));
+}
+
+function shipmentLabel(s){
+ return ({
+  preparing:'Em preparação',
+  posted:'Postado',
+  in_transit:'Em trânsito',
+  out_for_delivery:'Saiu para entrega',
+  delivered:'Entregue',
+  delivery_failed:'Tentativa de entrega',
+  returned:'Devolvido',
+  canceled:'Cancelado'
+ }[s]||s||'—');
+}
+
+async function updateShipment(order){
+ if(!order)return;
+ const status=(prompt('Status: preparing, posted, in_transit, out_for_delivery, delivered, delivery_failed, returned ou canceled',order.shipment_status||'preparing')||'').trim();
+ if(!status)return;
+ const carrier=prompt('Transportadora:',order.carrier_name||'')||null;
+ const code=prompt('Código de rastreamento:',order.tracking_code||'')||null;
+ const url=prompt('Link de rastreamento da transportadora:',order.tracking_url||'')||null;
+ const estimate=prompt('Previsão de entrega (AAAA-MM-DD), opcional:',order.estimated_delivery_at?String(order.estimated_delivery_at).slice(0,10):'')||null;
+ const description=prompt('Mensagem para aparecer no acompanhamento do cliente (opcional):','')||null;
+ const {error}=await sb.rpc('oyag_admin_upsert_shipment',{
+  p_order_id:order.id,
+  p_status:status,
+  p_carrier_name:carrier,
+  p_tracking_code:code,
+  p_tracking_url:url,
+  p_estimated_delivery_at:estimate?estimate+'T12:00:00-03:00':null,
+  p_event_title:null,
+  p_event_description:description,
+  p_location:null
+ });
+ if(error){alert('Não foi possível atualizar a entrega: '+error.message);return}
+ await showOrders();
+}
+
 async function show(v){
  C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';
- const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};
+ const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',orders:'Pedidos & Entregas',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};
  title.textContent=names[v]||'OYAG Ecosystem';
  if(v==='catalog'){await showCatalog();return}
  if(v==='project'){await showProject();return}
  if(v==='performance'){await showPerformance();return}
  if(v==='finance'){await showFinance();return}
+ if(v==='orders'){await showOrders();return}
  if(v==='admin'){await showAdmin();return}
  if(v==='overview'){await overview();return}
  const map={companies:'organizations',units:'oyag_owner_unit_overview',network:'oyag_affiliate_memberships',alerts:'oyag_operational_alerts'};
