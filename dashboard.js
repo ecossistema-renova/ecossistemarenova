@@ -78,10 +78,6 @@ async function overview(){
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">OPERAÇÃO</p><h2>Atenção agora</h2></div></div><div class="operation-stack"><div class="operation-row"><span>Tarefas abertas</span><strong>'+open.length+'</strong></div><div class="operation-row"><span>Tarefas atrasadas</span><strong>'+overdue.length+'</strong></div><div class="operation-row"><span>Tarefas bloqueadas</span><strong>'+blocked.length+'</strong></div><div class="operation-row"><span>Alertas abertos</span><strong>'+als.length+'</strong></div></div></div></div>'+notice()
 }
 async function showOrders(){
- if(!['owner','platform_admin'].includes(role)){
-  C.innerHTML=statePanel('Acesso restrito','Pedidos e entregas estão disponíveis para perfis administrativos nesta etapa.');
-  return;
- }
  C.innerHTML='<div class="loading">Carregando pedidos e entregas…</div>';
  const {data,error}=await sb.rpc('oyag_admin_orders_overview',{p_limit:150});
  if(error){C.innerHTML=statePanel('Não foi possível carregar os pedidos',error.message);return}
