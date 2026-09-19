@@ -348,3 +348,65 @@ html[data-theme="light"] .quick-actions button:first-child{background:linear-gra
   .quick-actions{justify-content:flex-start;width:100%;display:grid;grid-template-columns:1fr 1fr}
   .quick-actions button:first-child{grid-column:1/-1}
 }
+
+
+/* ===== OYAG CONTRAST PASS · 2026-09-19 ===== */
+/* Light: surfaces, typography and state separation */
+html[data-theme="light"] .metric{
+  background:#ffffff!important;
+  border-color:#cfdee8!important;
+  box-shadow:0 12px 32px rgba(15,45,70,.10)!important;
+}
+html[data-theme="light"] .metric::before{
+  width:4px;
+  background:linear-gradient(180deg,#1677ff 0%,#7a5cff 58%,#f4c960 100%)!important;
+  box-shadow:none
+}
+html[data-theme="light"] .metric span{
+  color:#49657a!important;
+  font-weight:750
+}
+html[data-theme="light"] .metric strong{
+  color:#081f33!important;
+  font-weight:950
+}
+html[data-theme="light"] .metric small{
+  color:#5d7486!important;
+  font-weight:650
+}
+html[data-theme="light"] .project-head{
+  background:transparent!important;
+}
+html[data-theme="light"] .progress{
+  background:#cddce5!important;
+  box-shadow:inset 0 1px 3px rgba(15,45,70,.12)
+}
+html[data-theme="light"] .progress i{
+  background:linear-gradient(90deg,#1677ff,#7a5cff,#f4c960)!important
+}
+html[data-theme="light"] .workspace-title .eyebrow{
+  color:#315a78!important;
+  text-shadow:none
+}
+html[data-theme="light"] .workspace-title h1{color:#081f33!important}
+html[data-theme="light"] .user span{color:#526d82!important}
+html[data-theme="light"] .user b{color:#173b56!important}
+html[data-theme="light"] .mobile-menu-toggle{
+  background:#0b2b44!important;
+  color:#fff!important;
+  border:1px solid #153d5a!important
+}
+html[data-theme="light"] .mobile-bottom-nav button.active{
+  color:#0b63ce!important;
+  background:rgba(22,119,255,.09);
+  border-radius:12px
+}
+/* Dark: preserve atmosphere while lifting readable content */
+html[data-theme="dark"] .metric span{color:#a9bfd2!important}
+html[data-theme="dark"] .metric strong{color:#f4f8ff!important}
+html[data-theme="dark"] .metric small{color:#8fa8bd!important}
+html[data-theme="dark"] .progress{background:#1a3044!important}
+@media(max-width:760px){
+  html[data-theme="light"] .metric{min-height:118px}
+  .mobile-bottom-nav button{margin:0 2px}
+}
