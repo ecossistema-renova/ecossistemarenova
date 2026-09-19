@@ -110,7 +110,7 @@ async function showOrders(){
   '<td>'+(x.street?esc(x.city||'')+'/'+esc(x.state||'')+'<br><small>'+esc(x.street)+', '+esc(x.address_number||'')+(x.neighborhood?' · '+esc(x.neighborhood):'')+'</small>':'—')+'</td>'+
   '<td>'+esc(x.shipment_status?shipmentLabel(x.shipment_status):'Ainda não iniciado')+'</td>'+
   '<td>'+esc(x.carrier_name||'—')+(x.tracking_code?'<br><small>'+esc(x.tracking_code)+'</small>':'')+'</td>'+
-  '<td><button class="catalog-primary" data-ship-order="'+esc(x.id)+'">Atualizar entrega</button></td>'+
+  '<td>'+(x.status==='completed'?'<span class="delivery-done">Concluído</span>':'<button class="catalog-primary" data-ship-order="'+esc(x.id)+'">Gerenciar entrega</button>')+'</td>'+
  '</tr>').join(''):'<tr><td colspan="8">Nenhum pedido encontrado.</td></tr>')+
  '</tbody></table></div></div>';
  C.querySelectorAll('[data-ship-order]').forEach(b=>b.onclick=()=>updateShipment(rows.find(x=>x.id===b.dataset.shipOrder)));
@@ -129,28 +129,104 @@ function shipmentLabel(s){
  }[s]||s||'—');
 }
 
+function deliveryHelp(status){
+ return ({
+  preparing:'Pedido sendo separado ou embalado.',
+  posted:'Pedido entregue à transportadora ou coletado por um entregador.',
+  in_transit:'Pedido a caminho do destino.',
+  out_for_delivery:'Entregador na etapa final da entrega.',
+  delivered:'Entrega realizada; o cliente precisará confirmar o recebimento.',
+  delivery_failed:'Houve uma tentativa de entrega sem sucesso.',
+  returned:'Pedido retornando ao vendedor.',
+  canceled:'Entrega cancelada.'
+ }[status]||'Selecione o estágio atual da entrega.');
+}
+
 async function updateShipment(order){
  if(!order)return;
- const status=(prompt('Status: preparing, posted, in_transit, out_for_delivery, delivered, delivery_failed, returned ou canceled',order.shipment_status||'preparing')||'').trim();
- if(!status)return;
- const carrier=prompt('Transportadora:',order.carrier_name||'')||null;
- const code=prompt('Código de rastreamento:',order.tracking_code||'')||null;
- const url=prompt('Link de rastreamento da transportadora:',order.tracking_url||'')||null;
- const estimate=prompt('Previsão de entrega (AAAA-MM-DD), opcional:',order.estimated_delivery_at?String(order.estimated_delivery_at).slice(0,10):'')||null;
- const description=prompt('Mensagem para aparecer no acompanhamento do cliente (opcional):','')||null;
- const {error}=await sb.rpc('oyag_admin_upsert_shipment',{
-  p_order_id:order.id,
-  p_status:status,
-  p_carrier_name:carrier,
-  p_tracking_code:code,
-  p_tracking_url:url,
-  p_estimated_delivery_at:estimate?estimate+'T12:00:00-03:00':null,
-  p_event_title:null,
-  p_event_description:description,
-  p_location:null
- });
- if(error){alert('Não foi possível atualizar a entrega: '+error.message);return}
- await showOrders();
+
+ const modal=document.querySelector('#deliveryManagerModal');
+ const form=document.querySelector('#deliveryManagerForm');
+ const statusEl=document.querySelector('#deliveryStatus');
+ const errorEl=document.querySelector('#deliveryFormError');
+ const save=document.querySelector('#deliverySave');
+ if(!modal||!form||!statusEl)return;
+
+ document.querySelector('#deliveryModalTitle').textContent='Pedido #'+order.order_number;
+ document.querySelector('#deliveryModalCustomer').textContent=(order.customer_name||'Cliente')+(order.city?' · '+order.city+(order.state?'/'+order.state:''):'');
+ document.querySelector('#deliveryCurrentStatus').textContent=shipmentLabel(order.shipment_status||'preparing');
+ document.querySelector('#deliveryCarrier').value=order.carrier_name||'';
+ document.querySelector('#deliveryTrackingCode').value=order.tracking_code||'';
+ document.querySelector('#deliveryTrackingUrl').value=order.tracking_url||'';
+ document.querySelector('#deliveryEstimate').value=order.estimated_delivery_at?String(order.estimated_delivery_at).slice(0,10):'';
+ document.querySelector('#deliveryLocation').value='';
+ document.querySelector('#deliveryMessage').value='';
+ errorEl.textContent='';
+ save.disabled=false;
+ save.textContent='Salvar atualização';
+ statusEl.value=order.shipment_status||'preparing';
+
+ const refreshPreview=()=>{
+  const label=shipmentLabel(statusEl.value);
+  const help=deliveryHelp(statusEl.value);
+  document.querySelector('#deliveryStatusHelp').textContent=help;
+  document.querySelector('#deliveryPreviewLabel').textContent=label;
+  document.querySelector('#deliveryPreviewText').textContent=help;
+ };
+ refreshPreview();
+ statusEl.onchange=refreshPreview;
+
+ const close=()=>{
+  modal.hidden=true;
+  document.body.classList.remove('delivery-modal-open');
+ };
+ modal.querySelectorAll('[data-delivery-close]').forEach(x=>x.onclick=close);
+
+ form.onsubmit=async e=>{
+  e.preventDefault();
+  errorEl.textContent='';
+
+  const status=statusEl.value;
+  const carrier=document.querySelector('#deliveryCarrier').value.trim()||null;
+  const code=document.querySelector('#deliveryTrackingCode').value.trim()||null;
+  const url=document.querySelector('#deliveryTrackingUrl').value.trim()||null;
+  const estimate=document.querySelector('#deliveryEstimate').value||null;
+  const location=document.querySelector('#deliveryLocation').value.trim()||null;
+  const description=document.querySelector('#deliveryMessage').value.trim()||null;
+
+  if(['posted','in_transit','out_for_delivery'].includes(status)&&!carrier){
+   errorEl.textContent='Informe a transportadora ou o responsável pela entrega.';
+   return;
+  }
+
+  save.disabled=true;
+  save.textContent='Salvando…';
+
+  const {error}=await sb.rpc('oyag_admin_upsert_shipment',{
+   p_order_id:order.id,
+   p_status:status,
+   p_carrier_name:carrier,
+   p_tracking_code:code,
+   p_tracking_url:url,
+   p_estimated_delivery_at:estimate?estimate+'T12:00:00-03:00':null,
+   p_event_title:null,
+   p_event_description:description,
+   p_location:location
+  });
+
+  if(error){
+   errorEl.textContent='Não foi possível atualizar a entrega: '+error.message;
+   save.disabled=false;
+   save.textContent='Salvar atualização';
+   return;
+  }
+
+  close();
+  await showOrders();
+ };
+
+ modal.hidden=false;
+ document.body.classList.add('delivery-modal-open');
 }
 
 async function show(v){
