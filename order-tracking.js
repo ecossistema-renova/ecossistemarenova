@@ -28,6 +28,8 @@ function orderCard(order){
  const shipments=Array.isArray(order.shipments)?order.shipments:[];
  const items=Array.isArray(order.items)?order.items:[];
  const paid=order.payment_status==='approved'||['paid','preparing','shipped','delivered','awaiting_confirmation','completed'].includes(order.status);
+ const hasDeliveredShipment=shipments.some(s=>s.status==='delivered');
+ const canConfirm=order.status==='awaiting_confirmation'&&hasDeliveredShipment&&order.payment_status==='approved';
  const shipHtml=shipments.length?shipments.map(s=>{
   const events=Array.isArray(s.events)?s.events:[];
   return '<div class="shipment-box">'+
@@ -55,6 +57,8 @@ function orderCard(order){
   '</div>'+
   '<div class="tracking-items"><p class="eyebrow">ITENS</p>'+items.map(i=>'<div class="tracking-item"><strong>'+esc(i.name)+'</strong><span>'+esc(i.quantity)+' un.</span></div>').join('')+'</div>'+
   shipHtml+
+  (canConfirm?'<div class="receipt-confirm-box"><strong>Você recebeu este pedido?</strong><p>Confirme somente depois que o produto estiver em suas mãos. A confirmação autoriza o OYAG a liberar o valor retido para a etapa de distribuição financeira.</p><button class="button primary" type="button" data-confirm-receipt="'+esc(order.id)+'">Confirmar recebimento</button></div>':'')+
+  (order.status==='completed'?'<div class="tracking-note receipt-ok"><strong>Recebimento confirmado.</strong> Este pedido foi concluído no OYAG.</div>':'')+
  '</article>';
 }
 
@@ -78,5 +82,51 @@ async function load(){
  if(!r.ok||!data.ok){C.innerHTML='<div class="tracking-empty"><h2>Não foi possível localizar o pedido.</h2><p>O link pode ter expirado ou sido substituído.</p></div>';return}
  const orders=Array.isArray(data.orders)?data.orders:[];
  C.innerHTML=orders.length?orders.map(orderCard).join(''):'<div class="tracking-empty">Nenhum pedido foi encontrado.</div>';
+ C.querySelectorAll('[data-confirm-receipt]').forEach(btn=>{
+   btn.addEventListener('click',()=>confirmReceipt(btn.dataset.confirmReceipt));
+ });
 }
+
+async function confirmReceipt(orderId){
+ if(!orderId)return;
+ if(!confirm('Confirma que você recebeu este pedido? Depois da confirmação, o valor retido será autorizado para a etapa de distribuição financeira.'))return;
+
+ const btn=C.querySelector('[data-confirm-receipt="'+CSS.escape(orderId)+'"]');
+ if(btn){btn.disabled=true;btn.textContent='Confirmando…'}
+
+ const headers={apikey:cfg.supabasePublishableKey,'content-type':'application/json'};
+ const body={action:'confirm_receipt',order_id:orderId};
+
+ if(token){
+   body.token=token;
+ }else{
+   const {data:{session}}=await sb.auth.getSession();
+   if(!session){
+     alert('Sua sessão expirou. Entre novamente para confirmar o recebimento.');
+     if(btn){btn.disabled=false;btn.textContent='Confirmar recebimento'}
+     return;
+   }
+   headers.authorization='Bearer '+session.access_token;
+   body.checkout_id=checkoutId;
+ }
+
+ const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-order-tracking',{
+   method:'POST',
+   headers,
+   body:JSON.stringify(body)
+ });
+ const data=await r.json().catch(()=>({}));
+
+ if(!r.ok||!data.ok){
+   console.error('OYAG_RECEIPT_CONFIRM',data);
+   alert(data?.detail?.includes('financial_event_not_found')
+     ? 'A confirmação ainda não pode ser concluída porque o registro financeiro deste pedido precisa ser conciliado.'
+     : 'Não foi possível confirmar o recebimento agora. Tente novamente.');
+   if(btn){btn.disabled=false;btn.textContent='Confirmar recebimento'}
+   return;
+ }
+
+ await load();
+}
+
 load().catch(()=>{C.innerHTML='<div class="tracking-empty">Não foi possível consultar o pedido agora.</div>'});
