@@ -410,3 +410,11 @@ html[data-theme="dark"] .progress{background:#1a3044!important}
   html[data-theme="light"] .metric{min-height:118px}
   .mobile-bottom-nav button{margin:0 2px}
 }
+
+
+/* ===== OYAG OFFICIAL BRAND · 2026-09-20 ===== */
+.oyag-logo .oyag-brand-symbol{width:48px;height:48px;display:block;flex:0 0 auto;border-radius:15px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(46,167,255,.18))}
+.company-logo.oyag-brand-symbol{width:64px;height:64px;padding:0;background:transparent!important;border-radius:19px;object-fit:contain;box-shadow:0 10px 28px rgba(46,167,255,.18)}
+.auth-card .oyag-logo .oyag-brand-symbol{width:54px;height:54px}
+html[data-theme="light"] .oyag-logo .oyag-brand-symbol{filter:drop-shadow(0 8px 16px rgba(13,39,64,.14))}
+@media(max-width:760px){.oyag-logo .oyag-brand-symbol{width:46px;height:46px}.company-logo.oyag-brand-symbol{width:58px;height:58px}}
