@@ -1,22 +1,25 @@
 # OYAG Ecosystem
 
-Reestruturação oficial do OYAG Ecosystem.
+Plataforma central oficial do OYAG Ecosystem.
 
 ## Stack
-- Next.js 16 (Active LTS)
+- GitHub como fonte oficial do código e histórico técnico
+- GitHub Pages para publicação web atual
 - Supabase Auth + PostgreSQL + RLS
-- GitHub como fonte oficial do código
-- NextGo como camada pública/publicação
+- Domínio próprio sob controle do OYAG
 
 ## Ambientes oficiais
-- GitHub: `ecossistema-renova/ecossistemarenova`
+- Repositório público: `oyag-ecosystem/oyag-ecosystem`
+- Repositório core: `oyag-ecosystem/oyag-ecosystem-core`
+- Domínio público: `https://oyag.cledemilsonoliveira.com`
 - Supabase Project Ref: `epbhiygonpkzlmbbsyqv`
+- Branch de publicação atual: `gh-pages`
 
 ## Arquitetura
 
-`Usuário → NextGo → aplicação Next.js → Supabase`
+`Usuário → oyag.cledemilsonoliveira.com → GitHub Pages → Supabase`
 
-O GitHub mantém código, documentação, migrations e histórico técnico.
+O GitHub mantém código, documentação e histórico técnico. O Supabase fornece autenticação, banco de dados e políticas de acesso.
 
 ## Princípios
 
@@ -24,4 +27,4 @@ O GitHub mantém código, documentação, migrations e histórico técnico.
 
 ## Segurança
 
-Nunca versionar chaves privadas, `service_role`, access tokens, senhas ou arquivos de ambiente com segredos. O frontend usa apenas URL do projeto e chave publicável do Supabase.
+Nunca versionar chaves privadas, `service_role`, access tokens, senhas ou arquivos de ambiente com segredos. O frontend usa apenas a URL do projeto e a chave publicável do Supabase.
