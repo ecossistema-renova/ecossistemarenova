@@ -1,3 +1,55 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><title>Painel · OYAG Ecosystem</title><link rel="stylesheet" href="./app-shell.css?v=responsive-review-20260918-02"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.production.js?v=prod-20260918-02"></script></head><body><div class="shell"><aside><a class="oyag-logo" href="./dashboard.html"><span>O</span><b>OYAG Ecosystem</b></a><a class="ecosystem-back" href="./desktop/">← Voltar ao OYAG Ecosystem</a><nav id="nav"><button data-view="overview" class="active">Visão geral</button><button data-view="companies">Empresas</button><button data-view="catalog">Produtos & Serviços</button><button data-view="units">Unidades OYAG</button><button data-view="network">Afiliados & Rede</button><button data-view="performance">Performance</button><button data-view="finance">Financeiro & Ledger</button><button data-view="orders">Pedidos & Entregas</button><button data-view="alerts">Alertas & Intervenções</button><button data-view="project" id="internalProjectNav">Projeto OYAG</button><button data-view="admin">Administração</button></nav><section class="company-card"><div class="company-logo">O</div><strong>OYAG ECOSYSTEM</strong><span>Gestão • Conexão • Crescimento</span><div class="company-divider"></div><div class="developer-avatar">CO</div><small>Desenvolvedor do OYAG Ecosystem</small><b>Cledemilson Oliveira de Assis</b><button type="button" id="developerInfo">Conhecer o desenvolvedor</button></section><button id="logout" class="logout">Sair</button></aside><button id="mobileMenuBackdrop" class="mobile-menu-backdrop" type="button" aria-label="Fechar menu"></button><main class="workspace"><header><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button><div class="workspace-title"><p class="eyebrow">OYAG ECOSYSTEM</p><h1 id="viewTitle">Visão geral</h1></div><div class="user"><span id="role">carregando…</span><b id="userEmail"></b></div></header><section id="content"><div class="loading">Carregando ambiente seguro…</div></section></main></div><script>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><title>Painel · OYAG Ecosystem</title><link rel="stylesheet" href="./app-shell.css?v=delivery-manager01"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.production.js?v=prod-20260918-02"></script></head><body><div class="shell"><aside><a class="oyag-logo" href="./dashboard.html"><span>O</span><b>OYAG Ecosystem</b></a><a class="ecosystem-back" href="./desktop/">← Voltar ao OYAG Ecosystem</a><nav id="nav"><button data-view="overview" class="active">Visão geral</button><button data-view="companies">Empresas</button><button data-view="catalog">Produtos & Serviços</button><button data-view="units">Unidades OYAG</button><button data-view="network">Afiliados & Rede</button><button data-view="performance">Performance</button><button data-view="finance">Financeiro & Ledger</button><button data-view="orders">Pedidos & Entregas</button><button data-view="alerts">Alertas & Intervenções</button><button data-view="project" id="internalProjectNav">Projeto OYAG</button><button data-view="admin">Administração</button></nav><section class="company-card"><div class="company-logo">O</div><strong>OYAG ECOSYSTEM</strong><span>Gestão • Conexão • Crescimento</span><div class="company-divider"></div><div class="developer-avatar">CO</div><small>Desenvolvedor do OYAG Ecosystem</small><b>Cledemilson Oliveira de Assis</b><button type="button" id="developerInfo">Conhecer o desenvolvedor</button></section><button id="logout" class="logout">Sair</button></aside><button id="mobileMenuBackdrop" class="mobile-menu-backdrop" type="button" aria-label="Fechar menu"></button><main class="workspace"><header><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button><div class="workspace-title"><p class="eyebrow">OYAG ECOSYSTEM</p><h1 id="viewTitle">Visão geral</h1></div><div class="user"><span id="role">carregando…</span><b id="userEmail"></b></div></header><section id="content"><div class="loading">Carregando ambiente seguro…</div></section></main></div>
+<div id="deliveryManagerModal" class="delivery-modal" hidden>
+  <div class="delivery-modal-backdrop" data-delivery-close></div>
+  <section class="delivery-modal-card" role="dialog" aria-modal="true" aria-labelledby="deliveryModalTitle">
+    <div class="delivery-modal-head">
+      <div>
+        <p class="eyebrow">GESTÃO DE ENTREGA</p>
+        <h2 id="deliveryModalTitle">Pedido</h2>
+        <p id="deliveryModalCustomer"></p>
+      </div>
+      <button type="button" class="delivery-close" data-delivery-close aria-label="Fechar">×</button>
+    </div>
+    <div class="delivery-current">
+      <span>Status atual</span>
+      <strong id="deliveryCurrentStatus">—</strong>
+    </div>
+    <form id="deliveryManagerForm" class="delivery-form">
+      <label class="delivery-field">
+        <span>Novo status</span>
+        <select id="deliveryStatus" required>
+          <option value="preparing">Em preparação</option>
+          <option value="posted">Postado / coletado</option>
+          <option value="in_transit">Em trânsito</option>
+          <option value="out_for_delivery">Saiu para entrega</option>
+          <option value="delivered">Entregue</option>
+          <option value="delivery_failed">Tentativa de entrega</option>
+          <option value="returned">Devolvido</option>
+          <option value="canceled">Cancelado</option>
+        </select>
+        <small id="deliveryStatusHelp"></small>
+      </label>
+      <div class="delivery-form-grid">
+        <label class="delivery-field"><span>Transportadora / entregador</span><input id="deliveryCarrier" placeholder="Ex.: 99Entrega, Correios, entrega própria"></label>
+        <label class="delivery-field"><span>Código de rastreamento</span><input id="deliveryTrackingCode" placeholder="Opcional"></label>
+        <label class="delivery-field span-2"><span>Link de rastreamento</span><input id="deliveryTrackingUrl" type="url" placeholder="https://..."></label>
+        <label class="delivery-field"><span>Previsão de entrega</span><input id="deliveryEstimate" type="date"></label>
+        <label class="delivery-field"><span>Local da atualização</span><input id="deliveryLocation" placeholder="Ex.: Marília/SP"></label>
+        <label class="delivery-field span-2"><span>Mensagem para o cliente</span><textarea id="deliveryMessage" rows="3" placeholder="Ex.: Pedido coletado e a caminho do endereço informado."></textarea></label>
+      </div>
+      <div class="delivery-preview">
+        <span>O cliente verá</span>
+        <strong id="deliveryPreviewLabel">—</strong>
+        <p id="deliveryPreviewText"></p>
+      </div>
+      <div id="deliveryFormError" class="delivery-form-error" aria-live="polite"></div>
+      <div class="delivery-modal-actions">
+        <button type="button" class="button secondary" data-delivery-close>Cancelar</button>
+        <button type="submit" class="catalog-primary" id="deliverySave">Salvar atualização</button>
+      </div>
+    </form>
+  </section>
+</div>
+<script>
 document.addEventListener('DOMContentLoaded',()=>{});
-</script><script src="./dashboard.js?v=receipt-release01"></script></body></html>
+</script><script src="./dashboard.js?v=delivery-manager01"></script></body></html>
