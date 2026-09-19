@@ -24,6 +24,7 @@ function render(){
   '<div><small>'+esc(x.category||x.item_type)+'</small><h2>'+esc(x.name)+'</h2><p>'+esc(x.description||'Oferta disponível no OYAG Ecosystem.')+
   '</p><span>'+esc(x.organization_name)+'</span><strong>'+esc(money(x.price_cents,x.currency))+'</strong>'+
   (x.commercial_condition?'<em>'+esc(x.commercial_condition)+'</em>':'')+
+  (x.fulfillment_type==='physical'?'<em>'+(x.shipping_mode==='fixed'?'Frete fixo: '+esc(money(x.shipping_fixed_cents,x.currency)):'Frete grátis')+'</em>':'')+
   '<button class="button primary buy-button" type="button" data-buy="'+esc(x.id)+'">Comprar</button></div></article>').join('');
 }
 
@@ -68,7 +69,7 @@ async function openLeadModal(itemId){
  if(!item)return;
  pendingItemId=itemId;
  pendingRequiresShipping=item.fulfillment_type==='physical';
- leadProduct.textContent=item.name+' · '+money(item.price_cents,item.currency)+(pendingRequiresShipping?' · Entrega física':'');
+ leadProduct.textContent=item.name+' · '+money(item.price_cents,item.currency)+(pendingRequiresShipping?(item.shipping_mode==='fixed'?' · Frete '+money(item.shipping_fixed_cents,item.currency):' · Frete grátis'):'');
  leadError.textContent='';
  if(shippingFields)shippingFields.hidden=!pendingRequiresShipping;
  const {data:{session}}=await sb.auth.getSession();
