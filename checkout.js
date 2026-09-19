@@ -13,7 +13,7 @@ const buyerDocumentInput=document.querySelector('#buyerDocument');
 const buyerDocumentError=document.querySelector('#buyerDocumentError');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=(c,cur='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:cur||'BRL'}).format(Number(c||0)/100);
-let session=null,guestToken=null,checkout=null,orders=[],items=[];
+let session=null,guestToken=null,checkout=null,orders=[],items=[],shippingAddress=null;
 
 function onlyDigits(v){return String(v||'').replace(/\D/g,'')}
 function normalizeDocument(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,14)}
@@ -77,11 +77,20 @@ function getStoredGuestToken(){
 function renderSummary(){
  const byOrder=new Map(orders.map(o=>[o.id,[]]));
  items.forEach(i=>{if(byOrder.has(i.order_id))byOrder.get(i.order_id).push(i)});
+ const addressHtml=shippingAddress
+  ? '<div class="shipping-review"><span>Entrega para</span><strong>'+esc(shippingAddress.recipient_name||'')+'</strong><p>'+
+      esc(shippingAddress.street||'')+', '+esc(shippingAddress.number||'')+
+      (shippingAddress.complement?' · '+esc(shippingAddress.complement):'')+'<br>'+
+      esc(shippingAddress.neighborhood||'')+' · '+esc(shippingAddress.city||'')+'/'+esc(shippingAddress.state||'')+
+      ' · CEP '+esc(String(shippingAddress.postal_code||'').replace(/(\d{5})(\d{3})/,'$1-$2'))+
+    '</p></div>'
+  : '';
  summaryEl.innerHTML='<div class="section-title"><span>Resumo do pedido</span><b class="status-pill '+esc(orders[0]?.status||'')+'">'+esc(orders[0]?.status||checkout.status)+'</b></div>'+
  orders.map(o=>'<div class="seller-block"><div class="seller-name">'+esc(o.seller_name_snapshot||'Empresa OYAG')+'</div>'+
  (byOrder.get(o.id)||[]).map(i=>'<div class="order-line"><div><b>'+esc(i.name_snapshot)+'</b><small>'+esc(i.quantity)+' × '+esc(money(i.unit_price_cents,i.currency))+'</small></div><strong>'+esc(money(i.line_total_cents,i.currency))+'</strong></div>').join('')+
  '<div class="totals"><div><span>Subtotal</span><b>'+esc(money(o.subtotal_cents,o.currency))+'</b></div><div><span>Entrega</span><b>'+esc(money(o.shipping_cents,o.currency))+'</b></div><div class="grand"><span>Total</span><b>'+esc(money(o.total_cents,o.currency))+'</b></div></div></div>').join('')+
- '<div class="secure-note">O preço exibido é o snapshot gravado no pedido. Alterações futuras no catálogo não mudam esta compra.</div>';
+ addressHtml+
+ '<div class="secure-note">Revise os dados antes de seguir para o pagamento. O preço exibido é o snapshot gravado no pedido.</div>';
 }
 
 async function loadAuthenticated(){
@@ -94,6 +103,10 @@ async function loadAuthenticated(){
  const it=await sb.from('oyag_order_items').select('order_id,name_snapshot,description_snapshot,image_url_snapshot,unit_price_cents,quantity,line_total_cents,currency').in('order_id',orders.map(x=>x.id));
  if(it.error)throw new Error('items_not_available');
  items=it.data||[];
+ const addr=await sb.from('oyag_checkout_shipping_addresses')
+   .select('recipient_name,recipient_phone,postal_code,street,number,complement,neighborhood,city,state,country_code')
+   .eq('checkout_id',id).maybeSingle();
+ if(!addr.error)shippingAddress=addr.data||null;
 }
 
 async function loadGuest(){
@@ -107,6 +120,7 @@ async function loadGuest(){
  checkout=data.checkout;
  orders=data.orders||[];
  items=data.items||[];
+ shippingAddress=data.shipping_address||null;
  if(!checkout||!orders.length)throw new Error('guest_checkout_not_available');
 }
 
