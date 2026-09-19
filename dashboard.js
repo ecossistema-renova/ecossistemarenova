@@ -6,7 +6,8 @@ if(!localStorage.getItem(legacySessionKey)&&sessionStorage.getItem(legacySession
 }
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
-});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle'),shell=document.querySelector('.shell'),mobileMenuToggle=document.querySelector('#mobileMenuToggle'),mobileMenuBackdrop=document.querySelector('#mobileMenuBackdrop');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function closeMobileMenu(){
+});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle'),shell=document.querySelector('.shell'),mobileMenuToggle=document.querySelector('#mobileMenuToggle'),mobileMenuBackdrop=document.querySelector('#mobileMenuBackdrop');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function openMobileMenu(){if(!shell)return;shell.classList.add('mobile-menu-open');mobileMenuToggle?.setAttribute('aria-expanded','true')}
+function closeMobileMenu(){
  if(!shell)return;
  shell.classList.remove('mobile-menu-open');
  mobileMenuToggle?.setAttribute('aria-expanded','false');
