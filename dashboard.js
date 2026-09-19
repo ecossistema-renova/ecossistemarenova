@@ -20,13 +20,44 @@ mobileMenuBackdrop?.addEventListener('click',closeMobileMenu);
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
 window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileMenu()});
 async function init(){const {data}=await sb.auth.getSession();session=data.session;if(!session){location.replace('./login.html');return}document.querySelector('#userEmail').textContent=session.user.email;const {data:r}=await sb.from('platform_roles').select('role').eq('user_id',session.user.id).maybeSingle();role=r?.role||'usuário';document.querySelector('#role').textContent=role==='owner'?'Conta Dono':role;const internal=document.querySelector('#internalProjectNav');if(internal&&!['owner','platform_admin'].includes(role))internal.remove();await loadUserProjects();show('overview')}document.querySelector('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('./')};const dev=document.querySelector('#developerInfo');if(dev)dev.onclick=()=>{C.innerHTML='<div class="panel developer-profile"><p class="eyebrow">DESENVOLVIMENTO</p><h2>OYAG Ecosystem</h2><p><b>Cledemilson Oliveira de Assis</b></p><p class="muted">Responsável pelo produto e desenvolvimento do ecossistema.</p></div>';title.textContent='Desenvolvedor'};document.querySelector('#nav').onclick=e=>{const b=e.target.closest('button[data-view]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');closeMobileMenu();show(b.dataset.view)};const cards=(items)=>'<div class="grid">'+items.map(x=>'<article class="metric"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2]||'')+'</small></article>').join('')+'</div>';async function count(table,filter){let q=sb.from(table).select('*',{count:'exact',head:true});if(filter)q=filter(q);const {count,error}=await q;return error?'—':count}async function showFinance(){
- const [bal,rec]=await Promise.all([sb.from('oyag_ledger_account_balances').select('*').limit(100),sb.from('oyag_owner_reconciliation_overview').select('*').order('reconciled_at',{ascending:false}).limit(50)]);
- if(bal.error||rec.error){C.innerHTML=statePanel('Não foi possível carregar o financeiro','Tente novamente.');return}
+ C.innerHTML='<div class="loading">Carregando financeiro…</div>';
+ const [overviewRes,bal,rec]=await Promise.all([
+  sb.rpc('oyag_admin_financial_overview',{p_limit:50}),
+  sb.from('oyag_ledger_account_balances').select('*').limit(100),
+  sb.from('oyag_owner_reconciliation_overview').select('*').order('reconciled_at',{ascending:false}).limit(50)
+ ]);
+ if(overviewRes.error||bal.error||rec.error){
+  C.innerHTML=statePanel('Não foi possível carregar o financeiro','Tente novamente.');
+  return;
+ }
+ const fin=overviewRes.data||{},k=fin.kpis||{},sales=Array.isArray(fin.recent_sales)?fin.recent_sales:[];
  const balances=bal.data||[],recs=rec.data||[],div=recs.filter(x=>x.reconciliation_status==='divergent');
- C.innerHTML=cards([['Contas internas',balances.length,'ledger OYAG'],['Conciliações',recs.length,'ledger × PSP'],['Divergências',div.length,'exigem análise']])+
+ C.innerHTML=
+ cards([
+  ['Vendas brutas',formatMoney(k.gross_sales_cents||0),'mês atual'],
+  ['Entradas líquidas',formatMoney(k.entries_net_cents||0),'recebido pelo provedor'],
+  ['Taxas',formatMoney(k.provider_fees_cents||0),'gateway'],
+  ['Retido',formatMoney(k.retained_cents||0),'aguardando cliente'],
+  ['Liberado',formatMoney(k.released_cents||0),'autorizado após recebimento'],
+  ['Checkouts pendentes',formatMoney(k.pending_checkout_cents||0),'ainda não pagos'],
+  ['Contas internas',balances.length,'ledger OYAG'],
+  ['Divergências',Number(k.reconciliation_divergences||div.length),'conciliação']
+ ])+
+ '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">VENDAS</p><h2>Movimentação financeira recente</h2></div></div>'+
+ (sales.length?domainTable('Pedidos pagos',['Pedido','Vendedor','Bruto','Líquido','Taxa','Status'],sales.map(x=>[
+   '#'+x.order_number,
+   x.seller_name_snapshot||'—',
+   formatMoney(x.total_cents),
+   formatMoney(x.net_cents),
+   formatMoney(x.fee_cents),
+   x.status
+ ])):statePanel('Nenhuma venda paga no período','As vendas confirmadas aparecerão aqui.'))+'</div>'+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">CONCILIAÇÃO</p><h2>Ledger interno × provedor de pagamento</h2></div></div>'+
- (recs.length?domainTable('Movimentações conciliadas',['Status','Origem','Referência','Interno','Externo','Diferença'],recs.map(x=>[x.reconciliation_status,x.provider||x.source_system,x.provider_payment_id||x.source_reference,formatMoney(x.internal_amount_cents),formatMoney(x.external_amount_cents),formatMoney(x.difference_cents)])):statePanel('Nenhuma conciliação registrada','Quando movimentações reais forem recebidas do provedor, a conciliação aparecerá aqui.'))+'</div>'+
- '<div class="panel"><p class="muted">Os saldos exibidos são registros contábeis do ledger interno OYAG e não representam, isoladamente, o saldo disponível no provedor de pagamento.</p></div>';
+ (recs.length?domainTable('Movimentações conciliadas',['Status','Origem','Referência','Interno','Externo','Diferença'],recs.map(x=>[
+   x.reconciliation_status,x.provider||x.source_system,x.provider_payment_id||x.source_reference,
+   formatMoney(x.internal_amount_cents),formatMoney(x.external_amount_cents),formatMoney(x.difference_cents)
+ ])):statePanel('Nenhuma conciliação registrada','Quando movimentações reais forem recebidas do provedor, a conciliação aparecerá aqui.'))+'</div>'+
+ '<div class="panel"><p class="muted">“Liberado” significa autorização interna para distribuição após a confirmação de recebimento. Não representa transferência bancária já executada.</p></div>';
 }
 
 async function overview(){
@@ -59,13 +90,15 @@ async function showOrders(){
   paid:rows.filter(x=>x.payment_status==='approved').length,
   preparing:rows.filter(x=>x.shipment_status==='preparing'||x.status==='preparing').length,
   transit:rows.filter(x=>['posted','in_transit','out_for_delivery'].includes(x.shipment_status)).length,
-  delivered:rows.filter(x=>x.shipment_status==='delivered'||x.status==='delivered').length
+  awaiting:rows.filter(x=>x.status==='awaiting_confirmation').length,
+  completed:rows.filter(x=>x.status==='completed').length
  };
  C.innerHTML=cards([
   ['Pagos',counts.paid,'pedidos confirmados'],
   ['Em preparação',counts.preparing,'aguardando postagem'],
   ['Em transporte',counts.transit,'postados / em trânsito'],
-  ['Entregues',counts.delivered,'concluídos']
+  ['Aguardando confirmação',counts.awaiting,'entrega informada'],
+  ['Concluídos',counts.completed,'recebimento confirmado']
  ])+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">CRM DE PEDIDOS</p><h2>Pedidos & Entregas</h2></div></div>'+
  '<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Destino</th><th>Entrega</th><th>Rastreamento</th><th>Ação</th></tr></thead><tbody>'+
