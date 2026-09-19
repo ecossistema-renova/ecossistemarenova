@@ -252,7 +252,7 @@ async function catalogOrganizations(){
 }
 async function showCatalog(){
  C.innerHTML='<div class="loading">Carregando catálogo…</div>';
- const [orgsRes,itemsRes]=await Promise.all([catalogOrganizations(),sb.from('oyag_catalog_items').select('id,organization_id,item_type,fulfillment_type,name,description,image_url,category,price_cents,currency,commercial_condition,status,updated_at').neq('status','archived').order('updated_at',{ascending:false})]);
+ const [orgsRes,itemsRes]=await Promise.all([catalogOrganizations(),sb.from('oyag_catalog_items').select('id,organization_id,item_type,fulfillment_type,shipping_mode,shipping_fixed_cents,name,description,image_url,category,price_cents,currency,commercial_condition,status,updated_at').neq('status','archived').order('updated_at',{ascending:false})]);
  if(itemsRes.error){C.innerHTML=statePanel('Não foi possível carregar o catálogo',itemsRes.error.message);return}
  const orgs=orgsRes,items=itemsRes.data||[];
  C.innerHTML='<div class="catalog-toolbar"><div><p class="eyebrow">CATÁLOGO</p><h2>Produtos & Serviços</h2><p class="muted">Cadastre e publique ofertas no Marketplace OYAG.</p></div><button class="catalog-primary" id="newCatalogItem">+ Novo produto ou serviço</button></div>'+
@@ -269,6 +269,18 @@ async function catalogForm(item,orgs){
   ? 'service'
   : (prompt('Entrega: physical para produto físico ou digital para produto digital',item?.fulfillment_type||'physical')||'').trim().toLowerCase();
  if(!fulfillment)return;
+ let shippingMode='free',shippingFixedCents=0;
+ if(fulfillment==='physical'){
+  shippingMode=(prompt('Frete: free para grátis ou fixed para valor fixo',item?.shipping_mode||'free')||'').trim().toLowerCase();
+  if(!['free','fixed'].includes(shippingMode)){alert('Use free ou fixed para o frete nesta etapa.');return}
+  if(shippingMode==='fixed'){
+   const freightText=prompt('Valor do frete fixo em reais (ex.: 12,90):',item?.shipping_fixed_cents!=null?(Number(item.shipping_fixed_cents)/100).toFixed(2).replace('.',','):'');
+   if(freightText===null)return;
+   const freightParsed=Number(freightText.replace('.','').replace(',','.'));
+   if(!Number.isFinite(freightParsed)||freightParsed<=0){alert('Valor de frete inválido.');return}
+   shippingFixedCents=Math.round(freightParsed*100);
+  }
+ }
  const name=prompt('Nome:',item?.name||'');if(!name?.trim())return;
  const description=prompt('Descrição:',item?.description||'')||'';
  const category=prompt('Categoria:',item?.category||'')||'';
@@ -278,7 +290,7 @@ async function catalogForm(item,orgs){
  const image=prompt('URL da imagem (opcional):',item?.image_url||'')||'';
  const condition=prompt('Condição comercial:',item?.commercial_condition||'Pagamento único')||'';
  const status=(prompt('Status: draft, published ou paused',item?.status||'draft')||'').trim().toLowerCase();if(!status)return;
- const args={p_action:item?'update':'create',p_item_id:item?.id||null,p_organization_id:org,p_item_type:type,p_name:name.trim(),p_description:description,p_image_url:image,p_category:category,p_price_cents:Math.round(parsed*100),p_commercial_condition:condition,p_status:status,p_fulfillment_type:fulfillment};
+ const args={p_action:item?'update':'create',p_item_id:item?.id||null,p_organization_id:org,p_item_type:type,p_name:name.trim(),p_description:description,p_image_url:image,p_category:category,p_price_cents:Math.round(parsed*100),p_commercial_condition:condition,p_status:status,p_fulfillment_type:fulfillment,p_shipping_mode:shippingMode,p_shipping_fixed_cents:shippingFixedCents};
  const {error}=await sb.rpc('oyag_manage_catalog_item',args);if(error){alert('Não foi possível salvar: '+error.message);return}await showCatalog();
 }
 async function archiveCatalog(id){
