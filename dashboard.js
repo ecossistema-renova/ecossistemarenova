@@ -6,7 +6,8 @@ if(!localStorage.getItem(legacySessionKey)&&sessionStorage.getItem(legacySession
 }
 const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:localStorage}
-});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle'),shell=document.querySelector('.shell'),mobileMenuToggle=document.querySelector('#mobileMenuToggle'),mobileMenuBackdrop=document.querySelector('#mobileMenuBackdrop');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function closeMobileMenu(){
+});let session,role=null;const C=document.querySelector('#content'),title=document.querySelector('#viewTitle'),shell=document.querySelector('.shell'),mobileMenuToggle=document.querySelector('#mobileMenuToggle'),mobileMenuBackdrop=document.querySelector('#mobileMenuBackdrop');const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function openMobileMenu(){if(!shell)return;shell.classList.add('mobile-menu-open');mobileMenuToggle?.setAttribute('aria-expanded','true')}
+function closeMobileMenu(){
  if(!shell)return;
  shell.classList.remove('mobile-menu-open');
  mobileMenuToggle?.setAttribute('aria-expanded','false');
@@ -19,7 +20,10 @@ mobileMenuToggle?.addEventListener('click',()=>{
 mobileMenuBackdrop?.addEventListener('click',closeMobileMenu);
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
 window.addEventListener('resize',()=>{if(window.innerWidth>800)closeMobileMenu()});
-async function init(){const {data}=await sb.auth.getSession();session=data.session;if(!session){location.replace('./login.html');return}document.querySelector('#userEmail').textContent=session.user.email;const {data:r}=await sb.from('platform_roles').select('role').eq('user_id',session.user.id).maybeSingle();role=r?.role||'usuário';document.querySelector('#role').textContent=role==='owner'?'Conta Dono':role;const internal=document.querySelector('#internalProjectNav');if(internal&&!['owner','platform_admin'].includes(role))internal.remove();await loadUserProjects();show('overview')}document.querySelector('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('./')};const dev=document.querySelector('#developerInfo');if(dev)dev.onclick=()=>{C.innerHTML='<div class="panel developer-profile"><p class="eyebrow">DESENVOLVIMENTO</p><h2>OYAG Ecosystem</h2><p><b>Cledemilson Oliveira de Assis</b></p><p class="muted">Responsável pelo produto e desenvolvimento do ecossistema.</p></div>';title.textContent='Desenvolvedor'};document.querySelector('#nav').onclick=e=>{const b=e.target.closest('button[data-view]');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');closeMobileMenu();show(b.dataset.view)};const cards=(items)=>'<div class="grid">'+items.map(x=>'<article class="metric"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2]||'')+'</small></article>').join('')+'</div>';async function count(table,filter){let q=sb.from(table).select('*',{count:'exact',head:true});if(filter)q=filter(q);const {count,error}=await q;return error?'—':count}async function showFinance(){
+async function init(){const {data}=await sb.auth.getSession();session=data.session;if(!session){location.replace('./login.html');return}document.querySelector('#userEmail').textContent=session.user.email;const {data:r}=await sb.from('platform_roles').select('role').eq('user_id',session.user.id).maybeSingle();role=r?.role||'usuário';document.querySelector('#role').textContent=role==='owner'?'Conta Dono':role;const internal=document.querySelector('#internalProjectNav');if(internal&&!['owner','platform_admin'].includes(role))internal.remove();await loadUserProjects();show('overview')}document.querySelector('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('./')};const dev=document.querySelector('#developerInfo');if(dev)dev.onclick=()=>{C.innerHTML='<div class="panel developer-profile"><p class="eyebrow">DESENVOLVIMENTO</p><h2>OYAG Ecosystem</h2><p><b>Cledemilson Oliveira de Assis</b></p><p class="muted">Responsável pelo produto e desenvolvimento do ecossistema.</p></div>';title.textContent='Desenvolvedor'};function activateView(v){document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));closeMobileMenu();show(v)}
+document.querySelector('#nav').onclick=e=>{const b=e.target.closest('button[data-view]');if(!b)return;activateView(b.dataset.view)};
+const mobileBottomNav=document.querySelector('#mobileBottomNav');
+if(mobileBottomNav)mobileBottomNav.onclick=e=>{const more=e.target.closest('[data-more]');if(more){openMobileMenu();return}const b=e.target.closest('button[data-view]');if(b)activateView(b.dataset.view)};const cards=(items)=>'<div class="grid">'+items.map(x=>'<article class="metric"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong><small>'+esc(x[2]||'')+'</small></article>').join('')+'</div>';async function count(table,filter){let q=sb.from(table).select('*',{count:'exact',head:true});if(filter)q=filter(q);const {count,error}=await q;return error?'—':count}async function showFinance(){
  C.innerHTML='<div class="loading">Carregando financeiro…</div>';
  const [overviewRes,bal,rec]=await Promise.all([
   sb.rpc('oyag_admin_financial_overview',{p_limit:50}),
@@ -72,8 +76,8 @@ async function overview(){
  ]);
  const orgs=o.data||[],units=u.data||[],aff=a.data||[],als=alerts.data||[],ps=projects.data||[],ts=tasks.data||[],balances=ledger.data||[],now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
  const open=ts.filter(x=>x.status!=='done'),overdue=open.filter(x=>x.due_date&&new Date(x.due_date)<today),blocked=open.filter(x=>x.status==='blocked');
- C.innerHTML='<div class="welcome-row"><div><p class="eyebrow">VISÃO GERAL</p><h2>Seu ecossistema em uma única visão.</h2><p class="muted">Acompanhe estrutura, projetos e pontos de atenção do OYAG.</p></div></div>'+
- cards([['Empresas',orgs.length,'organizações visíveis'],['Unidades',units.length,'estrutura OYAG'],['Afiliados ativos',aff.length,'rede atual'],['Projetos ativos',ps.length,'projetos pessoais'],['Tarefas abertas',open.length,'execução'],['Tarefas atrasadas',overdue.length,'atenção'],['Bloqueadas',blocked.length,'dependências'],['Alertas abertos',als.length,'operação']])+
+ C.innerHTML='<div class="welcome-row"><div><p class="eyebrow">SEU DIA NO OYAG</p><h2>Seu negócio em movimento.</h2><p class="muted">Acompanhe resultados, resolva pendências e encontre o próximo passo para crescer.</p></div><div class="quick-actions"><button data-go="catalog">Cadastrar produto</button><button data-go="orders">Ver pedidos</button><button data-go="finance">Abrir financeiro</button></div></div>'+
+ cards([['Empresas',orgs.length,'cadastradas'],['Unidades',units.length,'em sua estrutura'],['Conexões ativas',aff.length,'na Rede OYAG'],['Projetos ativos',ps.length,'em andamento'],['Tarefas abertas',open.length,'para avançar'],['Tarefas atrasadas',overdue.length,'precisam de atenção'],['Bloqueadas',blocked.length,'aguardando solução'],['Pendências',als.length,'para revisar']])+
  '<div class="dashboard-columns"><div class="panel"><div class="panel-heading"><div><p class="eyebrow">ATIVIDADE CENTRAL</p><h2>Pontos recentes</h2></div></div>'+(als.length?als.map(x=>'<div class="activity-row"><b>'+esc(x.reason||'Alerta operacional')+'</b><span>'+esc(x.severity||'atenção')+'</span></div>').join(''):statePanel('Nenhuma atenção crítica agora','Os alertas operacionais aparecerão aqui quando houver necessidade de acompanhamento.'))+'</div>'+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">OPERAÇÃO</p><h2>Atenção agora</h2></div></div><div class="operation-stack"><div class="operation-row"><span>Tarefas abertas</span><strong>'+open.length+'</strong></div><div class="operation-row"><span>Tarefas atrasadas</span><strong>'+overdue.length+'</strong></div><div class="operation-row"><span>Tarefas bloqueadas</span><strong>'+blocked.length+'</strong></div><div class="operation-row"><span>Alertas abertos</span><strong>'+als.length+'</strong></div></div></div></div>'+notice()
 }
@@ -227,7 +231,7 @@ async function updateShipment(order){
 
 async function show(v){
  C.innerHTML='<div class="loading">Consultando dados do OYAG…</div>';
- const names={overview:'Visão geral',companies:'Empresas',catalog:'Produtos & Serviços',units:'Unidades OYAG',network:'Afiliados & Rede',performance:'Performance',finance:'Financeiro & Ledger',orders:'Pedidos & Entregas',alerts:'Alertas & Intervenções',project:'Projeto OYAG',admin:'Administração'};
+ const names={overview:'Início',companies:'Empresas',catalog:'Produtos e serviços',units:'Unidades',network:'Rede OYAG',performance:'Resultados',finance:'Financeiro',orders:'Pedidos e entregas',alerts:'Pendências',project:'Projetos',admin:'Configurações'};
  title.textContent=names[v]||'OYAG Ecosystem';
  if(v==='catalog'){await showCatalog();return}
  if(v==='project'){await showProject();return}
@@ -446,3 +450,6 @@ async function showAdmin(){
  '<div class="panel"><p class="muted">A conta-pai nunca será usada como recebedora do próprio split. Sellers serão vinculados por subconta e walletId, com escrow configurado quando aplicável.</p></div></div>';
  const b=document.querySelector('#validateAsaas');if(b)b.onclick=()=>showAdmin();
 }
+
+// Navegação contextual do painel
+C.addEventListener('click',function(e){const action=e.target.closest('[data-go]');if(action)activateView(action.dataset.go)});

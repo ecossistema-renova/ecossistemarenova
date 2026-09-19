@@ -53,3 +53,77 @@ body.oyag-real-mobile footer p{text-align:left}
 
 /* Homologação OYAG: identificação visual explícita */
 .homolog-badge{position:fixed;right:14px;bottom:14px;z-index:999999;padding:9px 12px;border-radius:10px;background:#fff;color:#061b2b;border:2px solid #f4c960;font-size:.72rem;font-weight:900;letter-spacing:.05em;box-shadow:0 8px 30px #0003}
+
+
+/* ===== OYAG LIGHT + DARK THEMES · 2026-09-19 ===== */
+:root{
+  --oyag-blue:#2ea7ff;
+  --oyag-blue-strong:#1677ff;
+  --oyag-gold:#f4c960;
+  --oyag-purple:#7a5cff;
+  color-scheme:light;
+}
+html[data-theme="dark"]{color-scheme:dark}
+html[data-theme="light"]{color-scheme:light}
+
+.theme-toggle{
+  min-height:42px;padding:0 14px;border:1px solid rgba(22,119,255,.22);border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:rgba(255,255,255,.9);color:#102535;font:800 .86rem/1 Inter,system-ui,sans-serif;
+  box-shadow:0 8px 24px rgba(6,27,43,.08);cursor:pointer;transition:.2s ease;
+}
+.theme-toggle:hover{transform:translateY(-1px);border-color:var(--oyag-blue);box-shadow:0 10px 28px rgba(22,119,255,.15)}
+.theme-toggle:focus-visible{outline:3px solid rgba(46,167,255,.32);outline-offset:3px}
+.theme-toggle>span:first-child{font-size:1.05rem}
+
+/* Azul tecnológico substitui o antigo verde como cor funcional. */
+.eyebrow,.hero .eyebrow,.section-kicker{color:var(--oyag-blue)!important}
+.btn-primary,.cta-primary{background:linear-gradient(135deg,var(--oyag-blue),var(--oyag-purple))!important;color:#fff!important}
+.checks i,.check-list i{color:var(--oyag-blue)!important}
+.orbit,.orbit::before,.orbit::after{border-color:rgba(46,167,255,.28)!important}
+
+html[data-theme="dark"] body{background:#030914;color:#eaf2ff}
+html[data-theme="dark"] .topbar{background:rgba(3,9,20,.94);border-color:rgba(82,145,214,.18);backdrop-filter:blur(18px)}
+html[data-theme="dark"] .brand strong,html[data-theme="dark"] .nav a{color:#eef5ff}
+html[data-theme="dark"] .brand small{color:#8ea6bf}
+html[data-theme="dark"] .theme-toggle{background:#0b1829;color:#eaf2ff;border-color:rgba(46,167,255,.34);box-shadow:none}
+html[data-theme="dark"] .hero{background:
+  radial-gradient(circle at 80% 18%,rgba(46,167,255,.18),transparent 34%),
+  radial-gradient(circle at 20% 80%,rgba(122,92,255,.13),transparent 36%),
+  linear-gradient(145deg,#020812,#071a2c)!important}
+html[data-theme="dark"] .section,
+html[data-theme="dark"] .solutions,
+html[data-theme="dark"] .how,
+html[data-theme="dark"] .audience,
+html[data-theme="dark"] .trust,
+html[data-theme="dark"] footer{background:#030914;color:#eaf2ff}
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .solution-card,
+html[data-theme="dark"] .step,
+html[data-theme="dark"] .audience-card,
+html[data-theme="dark"] .trust-card{background:#091728!important;color:#eaf2ff!important;border-color:rgba(82,145,214,.2)!important;box-shadow:0 18px 54px rgba(0,0,0,.24)}
+html[data-theme="dark"] p,
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] .section p,
+html[data-theme="dark"] .card p{color:#a9bbce}
+html[data-theme="dark"] .btn-secondary{background:#f7fbff;color:#061b2b;border-color:#f7fbff}
+html[data-theme="dark"] .final-cta{background:linear-gradient(135deg,#08192c,#0b2740)!important}
+html[data-theme="dark"] .brand-mark{box-shadow:0 0 0 3px #132c47,0 0 24px rgba(244,201,96,.22)}
+
+
+/* Tema claro integral da página pública */
+html[data-theme="light"] .hero{
+  background:
+    radial-gradient(circle at 82% 16%,rgba(46,167,255,.18),transparent 34%),
+    radial-gradient(circle at 18% 84%,rgba(244,201,96,.17),transparent 30%),
+    linear-gradient(145deg,#f7fbff,#e9f3fb)!important;
+  color:#102535!important
+}
+html[data-theme="light"] .hero h1,
+html[data-theme="light"] .hero h2{color:#0b2438!important}
+html[data-theme="light"] .hero p{color:#516b7e!important}
+html[data-theme="light"] .hero-visual,
+html[data-theme="light"] .ecosystem-map{background:rgba(255,255,255,.72)!important;border-color:rgba(22,119,255,.16)!important;box-shadow:0 20px 58px rgba(13,39,64,.12)}
+html[data-theme="light"] .orbit-label{background:#fff!important;color:#17334a!important;border-color:#d7e4ec!important}
+html[data-theme="light"] .final-cta{background:linear-gradient(135deg,#0b3154,#104c75)!important;color:#fff}
+html[data-theme="light"] .final-cta p{color:#d7e8f5!important}
