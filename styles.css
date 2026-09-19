@@ -109,3 +109,21 @@ html[data-theme="dark"] .card p{color:#a9bbce}
 html[data-theme="dark"] .btn-secondary{background:#f7fbff;color:#061b2b;border-color:#f7fbff}
 html[data-theme="dark"] .final-cta{background:linear-gradient(135deg,#08192c,#0b2740)!important}
 html[data-theme="dark"] .brand-mark{box-shadow:0 0 0 3px #132c47,0 0 24px rgba(244,201,96,.22)}
+
+
+/* Tema claro integral da página pública */
+html[data-theme="light"] .hero{
+  background:
+    radial-gradient(circle at 82% 16%,rgba(46,167,255,.18),transparent 34%),
+    radial-gradient(circle at 18% 84%,rgba(244,201,96,.17),transparent 30%),
+    linear-gradient(145deg,#f7fbff,#e9f3fb)!important;
+  color:#102535!important
+}
+html[data-theme="light"] .hero h1,
+html[data-theme="light"] .hero h2{color:#0b2438!important}
+html[data-theme="light"] .hero p{color:#516b7e!important}
+html[data-theme="light"] .hero-visual,
+html[data-theme="light"] .ecosystem-map{background:rgba(255,255,255,.72)!important;border-color:rgba(22,119,255,.16)!important;box-shadow:0 20px 58px rgba(13,39,64,.12)}
+html[data-theme="light"] .orbit-label{background:#fff!important;color:#17334a!important;border-color:#d7e4ec!important}
+html[data-theme="light"] .final-cta{background:linear-gradient(135deg,#0b3154,#104c75)!important;color:#fff}
+html[data-theme="light"] .final-cta p{color:#d7e8f5!important}
