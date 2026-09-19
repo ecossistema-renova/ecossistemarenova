@@ -31,3 +31,37 @@
 .topbar>*,.hero>*,.cards>*,.steps>*,.split>*{min-width:0}
 .card,.learning-card{overflow-wrap:anywhere}
 @supports(height:100dvh){body{min-height:100dvh}}
+
+
+/* OYAG contrast standard v1 */
+/* Regra: superfícies escuras sempre usam tipografia clara e legível. */
+.hero,
+.hero-panel,
+.card.featured,
+.learning-card,
+footer{
+  --dark-text:#ffffff;
+  --dark-muted:#d7e6ee;
+  color:var(--dark-text);
+}
+.hero h1,.hero h2,.hero h3,.hero strong,
+.hero-panel h1,.hero-panel h2,.hero-panel h3,.hero-panel strong,
+.card.featured h3,.card.featured strong,
+.learning-card h2,.learning-card h3,.learning-card strong,
+footer h2,footer h3,footer strong{color:#ffffff!important}
+.hero p,.hero small,.hero .panel-note span,
+.hero-panel p,.hero-panel small,
+.card.featured p,.card.featured small,
+.learning-card p,.learning-card small,.learning-card li,
+footer p,footer small{color:#d7e6ee!important}
+.card.featured .tag{background:#dffcf7!important;color:#07594f!important}
+.card.featured a{color:#ffe486!important}
+.card.featured a:hover{color:#ffffff!important}
+.learning-card li.done{color:#ffffff!important}
+.hero .button.primary,.card.featured .button,.learning-card .button{color:#ffffff}
+.hero .button.secondary{color:#082b40}
+.panel-note{padding:14px;border-radius:14px;background:rgba(2,15,25,.34);border:1px solid rgba(255,255,255,.14)}
+@media (prefers-contrast:more){
+ .hero p,.hero small,.hero .panel-note span,.card.featured p,.learning-card li,footer p{color:#ffffff!important}
+ .card.featured,.learning-card,.hero-panel{border-color:rgba(255,255,255,.38)}
+}
