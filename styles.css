@@ -134,3 +134,8 @@ img.brand-mark.oyag-brand-symbol{width:44px;height:44px;border-radius:14px;objec
 .core img{width:100%;height:100%;display:block;border-radius:50%;transform:scale(1.18)}
 footer img.brand-mark.oyag-brand-symbol{width:42px;height:42px}
 @media(max-width:680px){img.brand-mark.oyag-brand-symbol{width:42px;height:42px}.core img{transform:scale(1.12)}}
+
+
+/* Approved Dark 2 emblem */
+img.oyag-brand-symbol{object-fit:contain!important;background:transparent!important}
+.core img{border-radius:0!important;filter:drop-shadow(0 0 16px rgba(46,167,255,.35))}

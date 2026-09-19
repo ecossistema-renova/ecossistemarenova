@@ -418,3 +418,9 @@ html[data-theme="dark"] .progress{background:#1a3044!important}
 .auth-card .oyag-logo .oyag-brand-symbol{width:54px;height:54px}
 html[data-theme="light"] .oyag-logo .oyag-brand-symbol{filter:drop-shadow(0 8px 16px rgba(13,39,64,.14))}
 @media(max-width:760px){.oyag-logo .oyag-brand-symbol{width:46px;height:46px}.company-logo.oyag-brand-symbol{width:58px;height:58px}}
+
+
+/* Approved Dark 2 emblem */
+.oyag-brand-symbol{object-fit:contain!important;background:transparent!important;border-radius:0!important}
+.oyag-logo .oyag-brand-symbol{filter:drop-shadow(0 0 13px rgba(46,167,255,.28))!important}
+.company-logo.oyag-brand-symbol{box-shadow:none!important}
