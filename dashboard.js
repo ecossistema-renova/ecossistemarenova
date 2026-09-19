@@ -68,16 +68,17 @@ async function showOrders(){
   ['Entregues',counts.delivered,'concluídos']
  ])+
  '<div class="panel"><div class="panel-heading"><div><p class="eyebrow">CRM DE PEDIDOS</p><h2>Pedidos & Entregas</h2></div></div>'+
- '<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Entrega</th><th>Rastreamento</th><th>Ação</th></tr></thead><tbody>'+
+ '<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Destino</th><th>Entrega</th><th>Rastreamento</th><th>Ação</th></tr></thead><tbody>'+
  (rows.length?rows.map(x=>'<tr>'+
   '<td><strong>#'+esc(x.order_number)+'</strong><br><small>'+esc(formatDate(x.created_at))+'</small></td>'+
   '<td><strong>'+esc(x.customer_name||'—')+'</strong><br><small>'+esc(x.customer_email||'')+(x.customer_whatsapp?' · '+esc(x.customer_whatsapp):'')+'</small></td>'+
   '<td>'+esc(x.items_summary||'—')+'</td>'+
   '<td>'+esc(x.payment_status==='approved'?'Pago':x.payment_status||'—')+'<br><small>'+esc(formatMoney(x.total_cents,x.currency))+'</small></td>'+
+  '<td>'+(x.street?esc(x.city||'')+'/'+esc(x.state||'')+'<br><small>'+esc(x.street)+', '+esc(x.address_number||'')+(x.neighborhood?' · '+esc(x.neighborhood):'')+'</small>':'—')+'</td>'+
   '<td>'+esc(x.shipment_status?shipmentLabel(x.shipment_status):'Ainda não iniciado')+'</td>'+
   '<td>'+esc(x.carrier_name||'—')+(x.tracking_code?'<br><small>'+esc(x.tracking_code)+'</small>':'')+'</td>'+
   '<td><button class="catalog-primary" data-ship-order="'+esc(x.id)+'">Atualizar entrega</button></td>'+
- '</tr>').join(''):'<tr><td colspan="7">Nenhum pedido encontrado.</td></tr>')+
+ '</tr>').join(''):'<tr><td colspan="8">Nenhum pedido encontrado.</td></tr>')+
  '</tbody></table></div></div>';
  C.querySelectorAll('[data-ship-order]').forEach(b=>b.onclick=()=>updateShipment(rows.find(x=>x.id===b.dataset.shipOrder)));
 }
@@ -251,7 +252,7 @@ async function catalogOrganizations(){
 }
 async function showCatalog(){
  C.innerHTML='<div class="loading">Carregando catálogo…</div>';
- const [orgsRes,itemsRes]=await Promise.all([catalogOrganizations(),sb.from('oyag_catalog_items').select('id,organization_id,item_type,name,description,image_url,category,price_cents,currency,commercial_condition,status,updated_at').neq('status','archived').order('updated_at',{ascending:false})]);
+ const [orgsRes,itemsRes]=await Promise.all([catalogOrganizations(),sb.from('oyag_catalog_items').select('id,organization_id,item_type,fulfillment_type,name,description,image_url,category,price_cents,currency,commercial_condition,status,updated_at').neq('status','archived').order('updated_at',{ascending:false})]);
  if(itemsRes.error){C.innerHTML=statePanel('Não foi possível carregar o catálogo',itemsRes.error.message);return}
  const orgs=orgsRes,items=itemsRes.data||[];
  C.innerHTML='<div class="catalog-toolbar"><div><p class="eyebrow">CATÁLOGO</p><h2>Produtos & Serviços</h2><p class="muted">Cadastre e publique ofertas no Marketplace OYAG.</p></div><button class="catalog-primary" id="newCatalogItem">+ Novo produto ou serviço</button></div>'+
@@ -264,6 +265,10 @@ async function catalogForm(item,orgs){
  if(!orgs.length){alert('Cadastre uma empresa antes de criar produtos.');return}
  const org=item?.organization_id||orgs[0].id;
  const type=(prompt('Tipo: product para produto ou service para serviço',item?.item_type||'product')||'').trim().toLowerCase();if(!type)return;
+ const fulfillment=type==='service'
+  ? 'service'
+  : (prompt('Entrega: physical para produto físico ou digital para produto digital',item?.fulfillment_type||'physical')||'').trim().toLowerCase();
+ if(!fulfillment)return;
  const name=prompt('Nome:',item?.name||'');if(!name?.trim())return;
  const description=prompt('Descrição:',item?.description||'')||'';
  const category=prompt('Categoria:',item?.category||'')||'';
@@ -273,7 +278,7 @@ async function catalogForm(item,orgs){
  const image=prompt('URL da imagem (opcional):',item?.image_url||'')||'';
  const condition=prompt('Condição comercial:',item?.commercial_condition||'Pagamento único')||'';
  const status=(prompt('Status: draft, published ou paused',item?.status||'draft')||'').trim().toLowerCase();if(!status)return;
- const args={p_action:item?'update':'create',p_item_id:item?.id||null,p_organization_id:org,p_item_type:type,p_name:name.trim(),p_description:description,p_image_url:image,p_category:category,p_price_cents:Math.round(parsed*100),p_commercial_condition:condition,p_status:status};
+ const args={p_action:item?'update':'create',p_item_id:item?.id||null,p_organization_id:org,p_item_type:type,p_name:name.trim(),p_description:description,p_image_url:image,p_category:category,p_price_cents:Math.round(parsed*100),p_commercial_condition:condition,p_status:status,p_fulfillment_type:fulfillment};
  const {error}=await sb.rpc('oyag_manage_catalog_item',args);if(error){alert('Não foi possível salvar: '+error.message);return}await showCatalog();
 }
 async function archiveCatalog(id){
