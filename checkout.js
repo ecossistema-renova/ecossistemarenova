@@ -78,7 +78,7 @@ function renderSummary(){
  const byOrder=new Map(orders.map(o=>[o.id,[]]));
  items.forEach(i=>{if(byOrder.has(i.order_id))byOrder.get(i.order_id).push(i)});
  const addressHtml=shippingAddress
-  ? '<div class="shipping-review"><span>Entrega para</span><strong>'+esc(shippingAddress.recipient_name||'')+'</strong><p>'+
+  ? '<div class="shipping-review"><div class="shipping-review-title">Endereço de entrega</div><span>Destinatário</span><strong>'+esc(shippingAddress.recipient_name||'')+'</strong><p>'+
       esc(shippingAddress.street||'')+', '+esc(shippingAddress.number||'')+
       (shippingAddress.complement?' · '+esc(shippingAddress.complement):'')+'<br>'+
       esc(shippingAddress.neighborhood||'')+' · '+esc(shippingAddress.city||'')+'/'+esc(shippingAddress.state||'')+
@@ -112,6 +112,7 @@ async function loadAuthenticated(){
 async function loadGuest(){
  const r=await fetch(cfg.supabaseUrl+'/functions/v1/oyag-get-guest-checkout',{
   method:'POST',
+  cache:'no-store',
   headers:{apikey:cfg.supabasePublishableKey,'content-type':'application/json'},
   body:JSON.stringify({checkout_id:id,guest_token:guestToken})
  });
