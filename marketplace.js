@@ -38,7 +38,16 @@ const leadWhatsappOptIn=document.querySelector('#leadWhatsappOptIn');
 const leadWebsite=document.querySelector('#leadWebsite');
 const leadError=document.querySelector('#leadError');
 const leadContinue=document.querySelector('#leadContinue');
+const shippingFields=document.querySelector('#shippingFields');
+const shipPostalCode=document.querySelector('#shipPostalCode');
+const shipState=document.querySelector('#shipState');
+const shipStreet=document.querySelector('#shipStreet');
+const shipNumber=document.querySelector('#shipNumber');
+const shipComplement=document.querySelector('#shipComplement');
+const shipNeighborhood=document.querySelector('#shipNeighborhood');
+const shipCity=document.querySelector('#shipCity');
 let pendingItemId=null;
+let pendingRequiresShipping=false;
 
 function phoneMask(value){
  const d=String(value||'').replace(/\D/g,'').slice(0,11);
@@ -48,13 +57,20 @@ function phoneMask(value){
  return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
 }
 leadWhatsapp?.addEventListener('input',()=>{leadWhatsapp.value=phoneMask(leadWhatsapp.value)});
+shipPostalCode?.addEventListener('input',()=>{
+ const d=shipPostalCode.value.replace(/\D/g,'').slice(0,8);
+ shipPostalCode.value=d.length>5?d.slice(0,5)+'-'+d.slice(5):d;
+});
+shipState?.addEventListener('input',()=>{shipState.value=shipState.value.replace(/[^a-z]/gi,'').toUpperCase().slice(0,2)});
 
 async function openLeadModal(itemId){
  const item=items.find(x=>x.id===itemId);
  if(!item)return;
  pendingItemId=itemId;
- leadProduct.textContent=item.name+' · '+money(item.price_cents,item.currency);
+ pendingRequiresShipping=item.fulfillment_type==='physical';
+ leadProduct.textContent=item.name+' · '+money(item.price_cents,item.currency)+(pendingRequiresShipping?' · Entrega física':'');
  leadError.textContent='';
+ if(shippingFields)shippingFields.hidden=!pendingRequiresShipping;
  const {data:{session}}=await sb.auth.getSession();
  if(session?.user?.email&&!leadEmail.value)leadEmail.value=session.user.email;
  leadModal.hidden=false;
@@ -66,6 +82,8 @@ function closeLeadModal(){
  leadModal.hidden=true;
  document.body.style.overflow='';
  pendingItemId=null;
+ pendingRequiresShipping=false;
+ if(shippingFields)shippingFields.hidden=true;
 }
 leadModal?.querySelectorAll('[data-lead-close]').forEach(el=>el.addEventListener('click',closeLeadModal));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!leadModal.hidden)closeLeadModal()});
@@ -93,6 +111,26 @@ leadForm?.addEventListener('submit',async e=>{
  if(!/^\S+@\S+\.\S+$/.test(email)){leadError.textContent='Informe um e-mail válido.';leadEmail.focus();return}
  if(whatsapp.length<10){leadError.textContent='Informe um WhatsApp válido com DDD.';leadWhatsapp.focus();return}
 
+ let shippingAddress=null;
+ if(pendingRequiresShipping){
+  const postalCode=shipPostalCode.value.replace(/\D/g,'');
+  const state=shipState.value.trim().toUpperCase();
+  const street=shipStreet.value.trim();
+  const number=shipNumber.value.trim();
+  const complement=shipComplement.value.trim();
+  const neighborhood=shipNeighborhood.value.trim();
+  const city=shipCity.value.trim();
+
+  if(postalCode.length!==8){leadError.textContent='Informe um CEP válido.';shipPostalCode.focus();return}
+  if(street.length<2){leadError.textContent='Informe o endereço de entrega.';shipStreet.focus();return}
+  if(!number){leadError.textContent='Informe o número do endereço.';shipNumber.focus();return}
+  if(neighborhood.length<2){leadError.textContent='Informe o bairro.';shipNeighborhood.focus();return}
+  if(city.length<2){leadError.textContent='Informe a cidade.';shipCity.focus();return}
+  if(!/^[A-Z]{2}$/.test(state)){leadError.textContent='Informe a UF com 2 letras.';shipState.focus();return}
+
+  shippingAddress={postal_code:postalCode,street,number,complement,neighborhood,city,state,country_code:'BR'};
+ }
+
  buying=true;
  leadContinue.disabled=true;
  leadContinue.textContent='Preparando pagamento…';
@@ -117,6 +155,7 @@ leadForm?.addEventListener('submit',async e=>{
     email,
     whatsapp,
     catalog_item_id:pendingItemId,
+    shipping_address:shippingAddress,
     email_marketing_opt_in:leadEmailOptIn.checked,
     whatsapp_marketing_opt_in:leadWhatsappOptIn.checked,
     idempotency_key:idem,
