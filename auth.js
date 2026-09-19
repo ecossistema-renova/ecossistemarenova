@@ -9,6 +9,8 @@ const sb=supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
 });
 const params=new URLSearchParams(location.search);
 let signup=params.get('mode')==='signup';
+const accountCreated=params.get('created')==='1';
+const prefillEmail=params.get('email')||'';
 const requestedNext=params.get('next');
 function safeNext(){
  if(!requestedNext)return './dashboard.html';
@@ -22,12 +24,24 @@ const afterAuth=safeNext();
 const f=document.querySelector('#authForm'),t=document.querySelector('#title'),s=document.querySelector('#submit'),toggle=document.querySelector('#toggle'),msg=document.querySelector('#msg'),signupFields=document.querySelector('#signupFields'),consents=document.querySelector('#consents'),password=document.querySelector('#password'),togglePassword=document.querySelector('#togglePassword'),forgot=document.querySelector('#forgotPassword');
 function render(){t.textContent=signup?'Criar conta':'Entrar';s.textContent=signup?'Criar conta':'Entrar';toggle.textContent=signup?'Já tenho conta':'Ainda não tenho conta';signupFields.hidden=!signup;consents.hidden=!signup;forgot.hidden=signup;password.autocomplete=signup?'new-password':'current-password'}
 render();
-toggle.onclick=()=>{signup=!signup;render();msg.textContent=''};
+if(prefillEmail)document.querySelector('#email').value=prefillEmail;
+if(accountCreated&&!signup){
+ msg.textContent='Conta criada com sucesso. Agora entre com seu e-mail e senha.';
+ msg.classList.add('ok');
+}
+toggle.onclick=()=>{signup=!signup;render();msg.textContent='';msg.classList.remove('ok')};
 togglePassword.onclick=()=>{const show=password.type==='password';password.type=show?'text':'password';togglePassword.textContent=show?'🙈':'👁';togglePassword.setAttribute('aria-label',show?'Ocultar senha':'Mostrar senha')};
 forgot.onclick=async()=>{const email=document.querySelector('#email').value.trim();if(!email){msg.textContent='Informe seu e-mail para recuperar a senha.';return}msg.textContent='Enviando link de recuperação…';const redirectTo=new URL('./reset-password.html',location.href).href;const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});msg.textContent=error?'Não foi possível enviar o link agora. Tente novamente.':'Se o e-mail estiver cadastrado, enviaremos as instruções de recuperação.'};
 const normalizePhone=v=>v.replace(/[^\d+]/g,'');
 f.onsubmit=async e=>{e.preventDefault();msg.textContent='Processando…';const email=document.querySelector('#email').value.trim(),pass=password.value;
- if(signup){const fullName=document.querySelector('#fullName').value.trim(),phone=normalizePhone(document.querySelector('#phone').value),terms=document.querySelector('#terms').checked,marketing=document.querySelector('#marketing').checked;if(fullName.length<3){msg.textContent='Informe seu nome completo.';return}if(!/^\+\d{10,15}$/.test(phone)){msg.textContent='Informe o WhatsApp com código do país. Exemplo: +55 11 99999-9999.';return}if(!terms){msg.textContent='Para criar a conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.';return}const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:fullName,phone,terms_accepted_at:new Date().toISOString(),marketing_consent:marketing,marketing_consent_at:marketing?new Date().toISOString():null}}});if(error){msg.textContent='Não foi possível criar a conta. Confira os dados e tente novamente.';return}if(!data.session){msg.textContent='Conta criada. Confirme o e-mail, se solicitado, e depois entre.';return}location.replace(afterAuth);return}
+ if(signup){const fullName=document.querySelector('#fullName').value.trim(),phone=normalizePhone(document.querySelector('#phone').value),terms=document.querySelector('#terms').checked,marketing=document.querySelector('#marketing').checked;if(fullName.length<3){msg.textContent='Informe seu nome completo.';return}if(!/^\+\d{10,15}$/.test(phone)){msg.textContent='Informe o WhatsApp com código do país. Exemplo: +55 11 99999-9999.';return}if(!terms){msg.textContent='Para criar a conta, é necessário aceitar os Termos de Uso e a Política de Privacidade.';return}const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:fullName,phone,terms_accepted_at:new Date().toISOString(),marketing_consent:marketing,marketing_consent_at:marketing?new Date().toISOString():null}}});if(error){msg.textContent='Não foi possível criar a conta. Confira os dados e tente novamente.';return}
+ if(data.session){await sb.auth.signOut()}
+ const loginUrl=new URL('./login.html',location.href);
+ loginUrl.searchParams.set('created','1');
+ loginUrl.searchParams.set('email',email);
+ if(requestedNext)loginUrl.searchParams.set('next',requestedNext);
+ location.replace(loginUrl.pathname+loginUrl.search);
+ return}
  const {error}=await sb.auth.signInWithPassword({email,password:pass});if(error){msg.textContent='E-mail ou senha inválidos.';return}location.replace(afterAuth)
 };
-(async()=>{const {data}=await sb.auth.getSession();if(data.session)location.replace(afterAuth)})();
+(async()=>{const {data}=await sb.auth.getSession();if(data.session&&!accountCreated)location.replace(afterAuth)})();
