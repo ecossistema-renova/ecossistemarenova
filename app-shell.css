@@ -424,3 +424,19 @@ html[data-theme="light"] .oyag-logo .oyag-brand-symbol{filter:drop-shadow(0 8px 
 .oyag-brand-symbol{object-fit:contain!important;background:transparent!important;border-radius:0!important}
 .oyag-logo .oyag-brand-symbol{filter:drop-shadow(0 0 13px rgba(46,167,255,.28))!important}
 .company-logo.oyag-brand-symbol{box-shadow:none!important}
+
+
+/* OYAG sidebar identity contrast v1 */
+.company-card{
+ background:linear-gradient(145deg,#102a3f,#071827)!important;
+ border-color:rgba(83,196,255,.34)!important;
+ box-shadow:0 14px 34px rgba(0,0,0,.24)!important;
+ color:#fff!important;
+}
+.company-card>strong,.company-card>b{color:#fff!important;opacity:1!important;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.company-card>span{color:#e5f2f8!important;opacity:1!important}
+.company-card>small{color:#bfeeff!important;opacity:1!important;font-weight:750!important}
+.company-card .company-divider{background:rgba(255,255,255,.26)!important}
+.company-card .developer-avatar{background:#fff!important;color:#08263a!important;border:2px solid rgba(83,196,255,.5)!important}
+.company-card button{color:#fff!important}
+html[data-theme="light"] .company-card{background:linear-gradient(145deg,#17394f,#0a2134)!important}
