@@ -139,3 +139,19 @@ footer img.brand-mark.oyag-brand-symbol{width:42px;height:42px}
 /* Approved Dark 2 emblem */
 img.oyag-brand-symbol{object-fit:contain!important;background:transparent!important}
 .core img{border-radius:0!important;filter:drop-shadow(0 0 16px rgba(46,167,255,.35))}
+
+
+/* OYAG live contrast standard v1 */
+/* Toda superfície escura deve usar texto claro. */
+.hero,.hero-panel,.card.featured,.dark,.dark article,.learning-card,footer{color:#fff}
+.hero h1,.hero h2,.hero h3,.hero strong,.hero-panel strong,.hero-panel h3,
+.card.featured h3,.card.featured strong,.dark h2,.dark h3,.dark strong,
+.learning-card h2,.learning-card h3,.learning-card strong,footer strong{color:#fff!important}
+.hero .lead,.hero .trust-list,.hero .panel-note span,.hero-panel p,.hero-panel small,
+.card.featured p,.card.featured small,.dark p,.dark small,.steps p,
+.learning-card p,.learning-card small,.learning-card li,footer p,footer small{color:#dceaf1!important}
+.card.featured .tag{background:#dff8f4!important;color:#075f57!important}
+.card.featured a{color:#ffe37c!important}.card.featured a:hover{color:#fff!important}
+.panel-note{padding:13px 14px;border-radius:13px;background:rgba(1,13,22,.38);border:1px solid rgba(255,255,255,.16)}
+.hero-panel{border-color:rgba(255,255,255,.24)}
+@media(prefers-contrast:more){.hero p,.hero span,.card.featured p,.dark p,.learning-card li,footer p{color:#fff!important}}
